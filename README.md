@@ -19,6 +19,11 @@ Getting the binary release
 
 Binary releases of SONDY are available <a href="http://mediamining.univ-lyon2.fr/people/guille/sondy.php#app">on this page</a>.
 
+Wiki
+----
+
+For help about how to use SONDY, take a look at the <a href="https://github.com/AdrienGuille/SONDY/wiki">wiki on GitHub</a>
+
 Features
 --------
 
@@ -38,14 +43,9 @@ Network analysis service
 - Implemented algorithms: Social Capitalists (Dugué and Perez 2014), Log K-Shell Decomposition (Brown and Feng ICWSM 2011), K-Shell Decomposition (Batagelj and Zaversnik ULPPS vol. 40, n.1, 2003), Page Rank (Page et al. WWW 1998), Betweenness Centrality (Freeman 1965)
 - Visualization: Interactive visualization of colored graphs; Plotting of rank distribution; Exploration of authors' messages; Visualization of events's activation sequences through the network of authors
 
-Wiki
-----
-
-For help about how to use SONDY, take a look at the <a href="https://github.com/AdrienGuille/SONDY/wiki">wiki on GitHub</a>
-
 Required library
 ----------------
 
-In order to be able to run SONDY, you should download the Stanford CoreNLP library at: http://nlp.stanford.edu/software/corenlp.shtml#Download, and add stanford-corenlp-1.3.x-models.jar
-into the lib/ directory of SONDY. 
+In order to be able to run SONDY from the sources, you should download the Stanford CoreNLP library at: http://nlp.stanford.edu/software/corenlp.shtml#Download, and add stanford-corenlp-1.3.x-models.jar
+into the lib/ directory of SONDY. This file is already included in the binary releases of SONDY.
 

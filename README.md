@@ -14,9 +14,16 @@ Details of this program are described in the following paper:
 
 Please cite this paper when using the application.
 
+----
+Wiki
+----
+
+For help about how to use SONDY, take a look at the <a href="https://github.com/AdrienGuille/SONDY/wiki">wiki on GitHub</a>
+
 ----------------
 Required library
 ----------------
 
 In order to be able to run SONDY, you should download the Stanford CoreNLP library at: http://nlp.stanford.edu/software/corenlp.shtml#Download, and add stanford-corenlp-1.3.x-models.jar
 into the lib/ directory of SONDY. 
+

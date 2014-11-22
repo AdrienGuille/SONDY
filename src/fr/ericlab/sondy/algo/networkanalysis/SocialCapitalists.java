@@ -38,11 +38,11 @@ import org.graphstream.graph.implementations.DefaultGraph;
 
 public class SocialCapitalists extends NetworkAnalysisAlgorithm{
     double threshold = 0.74;
-    double rankCoefficient = 10;
+    double rankScale = 10;
     
     public SocialCapitalists(){
-        algoDescription = "Identifies users that are social capitalists";   
-        parameters = FXCollections.observableArrayList(new AlgorithmParameter("threshold",""));
+        algoDescription = "Identifies users who might be social capitalists in a directed social network";   
+        parameters = FXCollections.observableArrayList(new AlgorithmParameter("threshold",""),new AlgorithmParameter("rankScale",""));
     }
     
     public String getName(){
@@ -55,7 +55,7 @@ public class SocialCapitalists extends NetworkAnalysisAlgorithm{
             threshold = Integer.parseInt(parameters.get(0).getValue());
         }
         if(parameters.get(1).getValue()!=null && !parameters.get(1).getValue().equals("")){
-            rankCoefficient = Integer.parseInt(parameters.get(1).getValue());
+            rankScale = Integer.parseInt(parameters.get(1).getValue());
         }
         int nbNodes = graph.getNodeCount();
         HashMap<String,Integer> nodesRank = new HashMap<>(nbNodes+5,1);
@@ -76,8 +76,8 @@ public class SocialCapitalists extends NetworkAnalysisAlgorithm{
                 }
             }
             double overlap = intersection/Math.min(A.size(),B.size());
-            overlap = (overlap>threshold)?overlap *10:0;
-            nodesRank.put(node.getId(),(int)(overlap*rankCoefficient));
+            overlap = (overlap>threshold)?overlap *rankScale:0;
+            nodesRank.put(node.getId(),(int)(overlap));
         }
         return nodesRank;
     }

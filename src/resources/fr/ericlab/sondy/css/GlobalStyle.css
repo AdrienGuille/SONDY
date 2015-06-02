@@ -1,0 +1,59 @@
+@font-face {
+    font-family: 'Droid Sans';
+    src: url('../../../../fonts/DroidSans.ttf');
+}
+
+.root {
+    -fx-font-family: 'Droid Sans';
+    -fx-font-size: 13px;
+    -fx-text-fill: black;
+}
+
+.chart {
+    -fx-padding: 0px;
+    -fx-font-size: 10px;
+    -fx-text-fill: #666666;   
+}
+
+.chart-content {
+    -fx-padding: 2px;
+}
+
+.axis {
+    -fx-padding: 0px;
+    -fx-opacity: 0.8;
+    -fx-font-size: 9px;
+    -fx-minor-tick-visible: false;
+    -fx-minor-tick-length: 0;
+}
+
+.axis:disabled {
+    -fx-opacity: 0.5;
+}
+
+.button {
+    -fx-font-size: 12px;
+}
+.text-field {
+    -fx-font-size: 12px;
+}
+.choice-box {
+    -fx-font-size: 12px;
+}
+.table-view {
+    -fx-font-size: 12px;
+}
+
+#smalltext {
+    -fx-font-size: 12px;
+    -fx-text-fill: #666666;
+}
+
+.default-color0.chart-series-line {  -fx-stroke-width: 2px; -fx-opacity: 0.88; }
+.default-color1.chart-series-line {  -fx-stroke-width: 2px; -fx-opacity: 0.88; }
+.default-color2.chart-series-line {  -fx-stroke-width: 2px; -fx-opacity: 0.88; }
+.default-color3.chart-series-line {  -fx-stroke-width: 2px; -fx-opacity: 0.88; }
+.default-color4.chart-series-line {  -fx-stroke-width: 2px; -fx-opacity: 0.88; }
+.default-color5.chart-series-line {  -fx-stroke-width: 2px; -fx-opacity: 0.88; }
+.default-color6.chart-series-line {  -fx-stroke-width: 2px; -fx-opacity: 0.88; }
+

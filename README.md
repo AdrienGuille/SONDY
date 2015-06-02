@@ -5,7 +5,7 @@ An open source social media data mining software (event detection + influence an
 
 Author: Adrien GUILLE
 
-Details of this software are described in the following paper:
+AN early version of this software is described in the following paper:
 
 	Adrien Guille, Cécile Favre, Hakim Hacid, Djamel A. Zighed (2013) 
 	SONDY: an open source platform for social dynamics mining and analysis.

@@ -17,7 +17,8 @@ Please cite this paper when using the application.
 Getting the binary release
 --------------------------
 
-Binary releases of SONDY are available <a href="http://mediamining.univ-lyon2.fr/people/guille/sondy.php#app">on this page</a>.
+Binary releases of SONDY are available <a href="http://mediamining.univ-lyon2.fr/people/guille/sondy.php#app">on this page</a>. 
+SONDY requires Java 8+.
 
 Wiki
 ----
@@ -27,18 +28,18 @@ For help about how to use SONDY, take a look at the <a href="https://github.com/
 Features
 --------
 
-Data manipulation service 
+Data manipulation 
 
 - Data import: Importation of CSV files representing the message stream and the social network of authors 
 - Data preparation: Discretization and indexation of the message stream; Tokenization of the messages by unigram, bigram and trigram; Stemming for English, French and Chinese; Lemmatization for English 
 - Data filtering: Removing stop-words; Focusing analysis on a sub-period of time 
 
-Event/topic detection service 
+Event detection 
 
 - Implemented algorithms: MABED (Guille and Favre ASONAM 2014), ET (Parikh and Karlapalem WWW 2013), Trending Scores (Benhardus and Kalita IJWBC vol.9, n.1, 2013), Peaky Topics (Shamma et al. CSCW 2011), Persistent Conversations (Shamma et al. CSCW 2011), EDCoW (Weng and Lee ICWSM 2011)
 - Visualization: Automatic generation of timelines; Visualization of trends with MACD (Rong and Qing IJMLC vol2. n.3, 2012); Exploration of the messages related to the detected topics/events; 
 
-Network analysis service 
+Influence analysis 
 
 - Implemented algorithms: Social Capitalists (Dugué and Perez 2014), Log K-Shell Decomposition (Brown and Feng ICWSM 2011), K-Shell Decomposition (Batagelj and Zaversnik ULPPS vol. 40, n.1, 2003), Page Rank (Page et al. WWW 1998), Betweenness Centrality (Freeman 1965)
 - Visualization: Interactive visualization of colored graphs; Plotting of rank distribution; Exploration of authors' messages; Visualization of events's activation sequences through the network of authors

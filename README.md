@@ -18,7 +18,7 @@ Getting the binary release
 --------------------------
 
 Binary releases of SONDY are available <a href="http://mediamining.univ-lyon2.fr/people/guille/sondy.php#app">on this page</a>. 
-SONDY requires Java 8+.
+SONDY requires Java 8u40+.
 
 Wiki
 ----

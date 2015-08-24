@@ -28,6 +28,8 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import main.java.fr.ericlab.sondy.core.app.Configuration;
 import main.java.fr.ericlab.sondy.core.text.index.GlobalIndexer;
+import main.java.fr.ericlab.sondy.core.text.nlp.ArabicStemming;
+import main.java.fr.ericlab.sondy.core.text.nlp.PersianStemming;
 import main.java.fr.ericlab.sondy.core.utils.PropertiesFileUtils;
 import java.io.File;
 import java.io.FileInputStream;
@@ -255,16 +257,28 @@ public class Corpus {
                     if (!stemming.equals("disabled")) {
                         String newText = "";
                         List<String> tokenList = Tokenizer.tokenizeString(analyzer, text);
-                        if (stemming.equals("French")) {
-                            FrenchStemming frenchStemming = new FrenchStemming();
-                            for (String token : tokenList) {
-                                newText += frenchStemming.stem(token) + " ";
-                            }
-                        } else {
-                            EnglishStemming englishStemming = new EnglishStemming();
-                            for (String token : tokenList) {
-                                newText += englishStemming.stem(token) + " ";
-                            }
+                        switch (stemming) {
+                            case "French":
+                                FrenchStemming frenchStemming = new FrenchStemming();
+                                for (String token : tokenList)
+                                    newText += frenchStemming.stem(token) + " ";
+                                break;
+                            case "Arabic":
+                                ArabicStemming arabicStemming = new ArabicStemming();
+                                for (String token : tokenList)
+                                    newText += arabicStemming.stem(token) + " ";
+                                break;
+                            case "Persian":
+                                PersianStemming persianStemming = new PersianStemming();
+                                for (String token : tokenList)
+                                    newText += persianStemming.stem(token) + " ";
+                                break;
+                            case "English":
+                                EnglishStemming englishStemming = new EnglishStemming();
+                                for (String token : tokenList)
+                                    newText += englishStemming.stem(token) + " ";
+                            default:
+                                break;
                         }
                         text = newText;
                     }

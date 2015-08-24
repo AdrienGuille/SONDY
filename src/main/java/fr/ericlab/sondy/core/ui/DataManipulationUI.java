@@ -213,7 +213,7 @@ public class DataManipulationUI {
         
         // Values
         stemmingChoiceBox = new ChoiceBox();
-        stemmingChoiceBox.getItems().addAll("disabled","French","English");
+        stemmingChoiceBox.getItems().addAll("disabled","French","English","Arabic","Persian");
         UIUtils.setSize(stemmingChoiceBox,Main.columnWidthLEFT/2, 24);
         lemmatizationChoiceBox = new ChoiceBox();
         lemmatizationChoiceBox.getItems().addAll("disabled","French","English");

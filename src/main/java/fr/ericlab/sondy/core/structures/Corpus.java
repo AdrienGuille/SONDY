@@ -177,6 +177,7 @@ public class Corpus {
             StanfordCoreNLP pipeline = new StanfordCoreNLP(props);
             Annotation annotation;
             File lemmatizedFile = new File(path.toString()+File.separator+"lemmatized_messages.csv");
+            BufferedWriter bwLemmatizedFile = new BufferedWriter(new FileWriter(lemmatizedFile, true));
             while(lineIterator.hasNext()){
                 String[] components = splitString(lineIterator.nextLine());
                 String text = components[2];
@@ -192,8 +193,9 @@ public class Corpus {
                 if(text.contains("@")){
                     lemmatizedText += " @";
                 }
-                FileUtils.writeStringToFile(lemmatizedFile, components[0]+"\t"+components[1]+"\t"+lemmatizedText+"\n", true);
+                bwLemmatizedFile.write(components[0]+"\t"+components[1]+"\t"+lemmatizedText+"\n");
             }
+            bwLemmatizedFile.close();
         } catch (IOException ex) {
             Logger.getLogger(Corpus.class.getName()).log(Level.SEVERE, null, ex);
         }

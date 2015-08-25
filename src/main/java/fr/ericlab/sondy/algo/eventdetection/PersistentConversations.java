@@ -60,12 +60,12 @@ public class PersistentConversations extends EventDetectionMethod {
         double minTermOccur = parameters.getParameterValue("minTermSupport") * AppParameters.dataset.corpus.messageCount;
         double maxTermOccur = parameters.getParameterValue("maxTermSupport") * AppParameters.dataset.corpus.messageCount;
         Map<Event,Double> scores = new HashMap<>();
-        for(int i = AppParameters.timeSliceA; i < AppParameters.timeSliceB; i++){
+        for(int i = 0; i < AppParameters.dataset.corpus.vocabulary.size(); i++){
             String term = AppParameters.dataset.corpus.vocabulary.get(i);
             if(term.length()>1 && !AppParameters.stopwords.contains(term)){
                 double tf = 0, cf = 0;
                 int peakIndex = 0;
-                for(int j = 0; j < AppParameters.dataset.corpus.messageDistribution.length; j++){
+                for(int j = AppParameters.timeSliceA; j < AppParameters.timeSliceB; j++){
                     cf += AppParameters.dataset.corpus.termFrequencies[i][j];
                     if(AppParameters.dataset.corpus.termFrequencies[i][j]>tf){
                         tf = AppParameters.dataset.corpus.termFrequencies[i][j];
@@ -74,15 +74,15 @@ public class PersistentConversations extends EventDetectionMethod {
                 }
                 if(cf > minTermOccur && cf < maxTermOccur){
                     double avgBeforePeak = 0;
-                    for(int k = 0; k <= peakIndex; k++){
+                    for(int k = AppParameters.timeSliceA; k <= peakIndex; k++){
                         avgBeforePeak += AppParameters.dataset.corpus.termFrequencies[i][k];
                     }
                     avgBeforePeak = avgBeforePeak/(peakIndex+1);
                     double avgAfterPeak = 0;
-                    for(int k = peakIndex; k < AppParameters.dataset.corpus.messageDistribution.length; k++){
+                    for(int k = peakIndex; k < AppParameters.timeSliceB; k++){
                         avgAfterPeak += AppParameters.dataset.corpus.termFrequencies[i][k];
                     }
-                    avgAfterPeak = avgAfterPeak/(AppParameters.dataset.corpus.messageDistribution.length-peakIndex);
+                    avgAfterPeak = avgAfterPeak/(AppParameters.timeSliceB-peakIndex);
                     scores.put(new Event(term,AppParameters.dataset.corpus.convertTimeSliceToDay(peakIndex)+","+AppParameters.dataset.corpus.convertTimeSliceToDay(peakIndex+1)), avgAfterPeak/avgBeforePeak);
                 }
             }

@@ -60,12 +60,12 @@ public class PeakyTopics extends EventDetectionMethod {
         double minTermOccur = parameters.getParameterValue("minTermSupport") * AppParameters.dataset.corpus.messageCount;
         double maxTermOccur = parameters.getParameterValue("maxTermSupport") * AppParameters.dataset.corpus.messageCount;
         Map<Event,Double> scores = new HashMap<>();
-        for(int i = AppParameters.timeSliceA; i < AppParameters.timeSliceB; i++){
+        for(int i = 0; i < AppParameters.dataset.corpus.vocabulary.size(); i++){
             String term = AppParameters.dataset.corpus.vocabulary.get(i);
             if(term.length()>1 && !AppParameters.stopwords.contains(term)){
                 double tf = 0, cf = 0;
                 int peakIndex = 0;
-                for(int j = 0; j < AppParameters.dataset.corpus.messageDistribution.length; j++){
+                for(int j = AppParameters.timeSliceA; j < AppParameters.timeSliceB; j++){
                     cf += AppParameters.dataset.corpus.termFrequencies[i][j];
                     if(AppParameters.dataset.corpus.termFrequencies[i][j]>tf){
                         tf = AppParameters.dataset.corpus.termFrequencies[i][j];

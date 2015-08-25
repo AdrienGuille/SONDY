@@ -66,8 +66,8 @@ public class PersistentConversations extends EventDetectionMethod {
                 double tf = 0, cf = 0;
                 int peakIndex = 0;
                 for(int j = 0; j < AppParameters.dataset.corpus.messageDistribution.length; j++){
+                    cf += AppParameters.dataset.corpus.termFrequencies[i][j];
                     if(AppParameters.dataset.corpus.termFrequencies[i][j]>tf){
-                        cf += AppParameters.dataset.corpus.termFrequencies[i][j];
                         tf = AppParameters.dataset.corpus.termFrequencies[i][j];
                         peakIndex = j;
                     }

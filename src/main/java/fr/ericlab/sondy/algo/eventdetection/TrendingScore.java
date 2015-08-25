@@ -63,30 +63,31 @@ public class TrendingScore extends EventDetectionMethod {
         double maxTermOccur = parameters.getParameterValue("maxTermSupport") * AppParameters.dataset.corpus.messageCount;
         trendingThreshold = parameters.getParameterValue("trendingThreshold");
         Map<Event,Double> scores = new HashMap<>();
-        int[] nbTermsPerTimeSlice = new int[AppParameters.dataset.corpus.messageDistribution.length];
-        for(int i = AppParameters.timeSliceA; i < AppParameters.timeSliceB; i++){
+        int[] nbTermsPerTimeSlice = new int[AppParameters.timeSliceB-AppParameters.timeSliceA];
+        for(int i = 0; i < AppParameters.timeSliceB - AppParameters.timeSliceA; i++){
             nbTermsPerTimeSlice[i] = AppParameters.dataset.corpus.getNumberOfTermsInTimeSlice(i);
         }
-        for(int i = AppParameters.timeSliceA; i < AppParameters.timeSliceB; i++){
+        for(int i = 0; i < AppParameters.dataset.corpus.vocabulary.size(); i++){
             String term = AppParameters.dataset.corpus.vocabulary.get(i);
             if(term.length()>1 && !AppParameters.stopwords.contains(term)){
                 short[] frequency = AppParameters.dataset.corpus.termFrequencies[i];
                 int cf = 0;
-                for(short freq : frequency){
-                    cf += freq;
+                for(int j=AppParameters.timeSliceA; j < AppParameters.timeSliceB; j++) {
+                    cf += frequency[j];
                 }
                 if(cf > minTermOccur && cf < maxTermOccur){
-                    double[] tfnorm = new double[AppParameters.dataset.corpus.messageDistribution.length];
+                    double[] tfnorm = new double[nbTermsPerTimeSlice.length];
                     double tfnormTotal = 0;
-                    double[] trendingScore = new double[AppParameters.dataset.corpus.messageDistribution.length];
-                    for(int j = 0; j < AppParameters.dataset.corpus.messageDistribution.length; j++){
-                        tfnorm[j] = ((double)frequency[j]/nbTermsPerTimeSlice[j])*Math.pow(10, 6);
+                    double[] trendingScore = new double[nbTermsPerTimeSlice.length];
+                    for(int j = 0; j < nbTermsPerTimeSlice.length; j++){
+                        tfnorm[j] = ((double)frequency[AppParameters.timeSliceA+j]/nbTermsPerTimeSlice[j])*Math.pow(10, 6);
                         tfnormTotal += tfnorm[j];
                     }
-                    for(int j = 0; j < AppParameters.dataset.corpus.messageDistribution.length; j++){
-                        trendingScore[j] = tfnorm[j]/((tfnormTotal - tfnorm[j])/(AppParameters.dataset.corpus.messageDistribution.length-1));
+                    for(int j = 0; j < nbTermsPerTimeSlice.length; j++){
+                        trendingScore[j] = tfnorm[j]/((tfnormTotal - tfnorm[j])/(nbTermsPerTimeSlice.length-1));
                         if(trendingScore[j] > trendingThreshold){
-                            scores.put(new Event(term,AppParameters.dataset.corpus.convertTimeSliceToDay(j)+","+AppParameters.dataset.corpus.convertTimeSliceToDay(j+1)),trendingScore[j]);
+                            scores.put(new Event(term,AppParameters.dataset.corpus.convertTimeSliceToDay(AppParameters.timeSliceA+j)+","+
+                                AppParameters.dataset.corpus.convertTimeSliceToDay(AppParameters.timeSliceA+j+1)),trendingScore[j]);
                         }
                     }
                 }

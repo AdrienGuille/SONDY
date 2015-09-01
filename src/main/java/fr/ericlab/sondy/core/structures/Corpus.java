@@ -26,7 +26,10 @@ import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import edu.stanford.nlp.util.CoreMap;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+
+import main.java.fr.ericlab.sondy.core.app.AppParameters;
 import main.java.fr.ericlab.sondy.core.app.Configuration;
+import main.java.fr.ericlab.sondy.core.text.index.CalculationType;
 import main.java.fr.ericlab.sondy.core.text.index.GlobalIndexer;
 import main.java.fr.ericlab.sondy.core.text.nlp.ArabicStemming;
 import main.java.fr.ericlab.sondy.core.text.nlp.PersianStemming;
@@ -44,13 +47,11 @@ import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
+
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import main.java.fr.ericlab.sondy.core.text.index.Tokenizer;
@@ -79,12 +80,8 @@ public class Corpus {
     // Preprocessed corpus
     public String preprocessing = "";
     public int timeSliceLength;
-    public int[] messageDistribution;
-    public short[][] termFrequencies;
-    public ArrayList<String> vocabulary;
-    
-    public short[][] termMentionFrequencies;
-    public ArrayList<String> mentionVocabulary;
+    public HashMap<CalculationType, Integer> messageCounts;
+    public HashMap<CalculationType, DocumentTermMatrix> termFrequencies;
 
     public String[] splitString(String str) {
         return str.split("\t");
@@ -100,9 +97,8 @@ public class Corpus {
             start = dateFormat.parse(PropertiesFileUtils.readProperty(propertiesFilePath, "start"));
             end = dateFormat.parse(PropertiesFileUtils.readProperty(propertiesFilePath, "end"));
             preprocessing = "";
-            messageDistribution = null;
-            termFrequencies = null;
-            vocabulary = null;
+            termFrequencies = new HashMap<>();
+            messageCounts = new HashMap<>();
         } catch (ParseException ex) {
             Logger.getLogger(Corpus.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -161,7 +157,7 @@ public class Corpus {
             properties.setProperty("authorCount", authors.size()+"");
             properties.setProperty("start", dateFormat.format(minDate));
             properties.setProperty("end", dateFormat.format(maxDate));
-            PropertiesFileUtils.saveProperties(Paths.get(Configuration.datasets + File.separator + id + File.separator + "messages.properties").toString(),properties);
+            PropertiesFileUtils.saveProperties(Paths.get(Configuration.datasets + File.separator + id + File.separator + "messages.properties").toString(), properties);
         } catch (IOException | ParseException ex) {
                 Logger.getLogger(Corpus.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -201,8 +197,8 @@ public class Corpus {
         }
     }
     
-    public String preprocess(Path path,String stemming, String lemmatization, int ngram, int timeSliceLength){      
-        Path preprocessPath = Paths.get(path+File.separator+stemming+"-"+lemmatization+"-"+ngram+"-"+timeSliceLength);
+    public String preprocess(Path path,String stemming, String lemmatization, int ngram, int timeSliceLength, boolean removeSpam){
+        Path preprocessPath = Paths.get(path + File.separator + stemming + "-" + lemmatization + "-" + ngram + "-" + timeSliceLength + "-" + removeSpam);
         preprocessPath.normalize();
         File dir = preprocessPath.toFile();
         File sourceFile = new File(path.toString()+File.separator+"messages.csv");
@@ -224,6 +220,8 @@ public class Corpus {
                 Analyzer analyzer = new StandardAnalyzer();
                 String line;
                 int timeSlice = -1;
+                Map<String, Set<String>> authorWords = new HashMap<>();
+
                 while ((line = bufferedReader.readLine()) != null) {
                     String[] components = splitString(line);
                     Date parsedDate = dateFormat.parse(components[1]);
@@ -254,8 +252,27 @@ public class Corpus {
                             FileUtils.write(fileAuthor, "");
                         }
                         bwAuthor = new BufferedWriter(new FileWriter(fileAuthor, true));
+
+                        if (removeSpam)
+                            authorWords.clear();
                     }
                     String text = components[2];
+                    if (removeSpam) {
+                        String cleanLine = text.toLowerCase();
+                        Set<String> words = Tokenizer.tokenizeString(analyzer, cleanLine).stream().collect(Collectors.toSet());
+                        if (authorWords.containsKey(components[0])) {
+                            Set<String> currentWords = authorWords.get(components[0]);
+                            if (words.stream().filter(word -> currentWords.contains(word)).count() * 1.0 / words.size() > 0.7) {
+                                text = words.stream().filter(word -> !currentWords.contains(word)).reduce((w1, w2) -> w1 + " " + w2).orElse("");
+                            }
+                            else {
+                                currentWords.addAll(words);
+                            }
+                        }
+                        else {
+                            authorWords.put(components[0], words);
+                        }
+                    }
                     if (!stemming.equals("disabled")) {
                         String newText = "";
                         List<String> tokenList = Tokenizer.tokenizeString(analyzer, text);
@@ -311,9 +328,7 @@ public class Corpus {
                 bwTime.close();
                 bwAuthor.close();
                 bufferedReader.close();
-                GlobalIndexer indexer = new GlobalIndexer(Configuration.numberOfCores, false);
-                indexer.index(preprocessPath.toString());
-                indexer = new GlobalIndexer(Configuration.numberOfCores, true);
+                GlobalIndexer indexer = new GlobalIndexer(Configuration.numberOfCores);
                 indexer.index(preprocessPath.toString());
                 return "Done.";
             } catch (IOException | ParseException | InterruptedException ex) {
@@ -328,15 +343,13 @@ public class Corpus {
         FileInputStream fisMatrix = null;
         try {
             setTimeSliceLength();
-            fisMatrix = new FileInputStream(path+File.separator+preprocessing+File.separator+"indexes/frequencyMatrix.dat");
-            ObjectInputStream oisMatrix = new ObjectInputStream(fisMatrix);
-            termFrequencies = (short[][]) oisMatrix.readObject();
-            FileInputStream fisVocabulary = new FileInputStream(path+File.separator+preprocessing+File.separator+"indexes/vocabulary.dat");
-            ObjectInputStream oisVocabulary = new ObjectInputStream(fisVocabulary);
-            vocabulary = (ArrayList<String>) oisVocabulary.readObject();
-            FileInputStream fisDistribution = new FileInputStream(path+File.separator+preprocessing+File.separator+"indexes/messageCountDistribution.dat");
-            ObjectInputStream oisDistribution = new ObjectInputStream(fisDistribution);
-            messageDistribution = (int[]) oisDistribution.readObject();
+            for (CalculationType type : CalculationType.values()) {
+                fisMatrix = new FileInputStream(path + File.separator + preprocessing + File.separator + "indexes/"+type.name()+"FrequencyMatrix.dat");
+                ObjectInputStream oisMatrix = new ObjectInputStream(fisMatrix);
+                termFrequencies.put(type, (DocumentTermMatrix) oisMatrix.readObject());
+                File messageCountFile = new File(path + File.separator + preprocessing + File.separator + "indexes/" + type.name() + "MessageCount.txt");
+                messageCounts.put(type, Integer.parseInt(FileUtils.readFileToString(messageCountFile)));
+            }
         } catch (FileNotFoundException ex) {
             Logger.getLogger(Corpus.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException | ClassNotFoundException ex) {
@@ -350,39 +363,14 @@ public class Corpus {
         }
     }
     
-    public void loadMentionFrequencies(){
-        FileInputStream fisMatrix = null;
-        try {
-            setTimeSliceLength();
-            fisMatrix = new FileInputStream(path+File.separator+preprocessing+File.separator+"indexes/mentionFrequencyMatrix.dat");
-            ObjectInputStream oisMatrix = new ObjectInputStream(fisMatrix);
-            termMentionFrequencies = (short[][]) oisMatrix.readObject();
-            FileInputStream fisVocabulary = new FileInputStream(path+File.separator+preprocessing+File.separator+"indexes/mentionVocabulary.dat");
-            ObjectInputStream oisVocabulary = new ObjectInputStream(fisVocabulary);
-            mentionVocabulary = (ArrayList<String>) oisVocabulary.readObject();
-        } catch (FileNotFoundException ex) {
-            Logger.getLogger(Corpus.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (IOException | ClassNotFoundException ex) {
-            Logger.getLogger(Corpus.class.getName()).log(Level.SEVERE, null, ex);
-        } finally {
-            try {
-                fisMatrix.close();
-            } catch (IOException ex) {
-                Logger.getLogger(Corpus.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
+    public Short[] getTermFrequency(CalculationType type, String term) {
+        return termFrequencies.get(type).getDocumentsTermFrequency(term);
     }
-    
-    public short[] getTermFrequency(String term){
-        int i = vocabulary.indexOf(term);
-        return termFrequencies[i];
+
+    public Integer[] getMessageDistribution(CalculationType type) {
+        return termFrequencies.get(type).getNumberOfDocuments();
     }
-    
-    public short[] getTermMentionFrequency(String term){
-        int i = mentionVocabulary.indexOf(term);
-        return termMentionFrequencies[i];
-    }
-    
+
     public String getMessages(String term, int timeSliceA, int timeSliceB){
         String messages = "";
         NumberFormat formatter = new DecimalFormat("00000000");
@@ -409,7 +397,7 @@ public class Corpus {
         int timeSliceB = convertDayToTimeSlice(Double.parseDouble(interval[1]));
         String term = event.getTextualDescription().split(" ")[0];
         NumberFormat formatter = new DecimalFormat("00000000");
-        for(int i = timeSliceA; i <= timeSliceB; i++){
+        for(int i = AppParameters.timeSliceA; i < AppParameters.timeSliceB; i++){
             try {
                 File textFile = new File(path+File.separator+preprocessing+File.separator+formatter.format(i)+".text");
                 File timeFile = new File(path+File.separator+preprocessing+File.separator+formatter.format(i)+".time");
@@ -422,7 +410,7 @@ public class Corpus {
                     String author = authorIter.nextLine();
                     String time = timeIter.nextLine();
                     if(StringUtils.containsIgnoreCase(text,term)){
-                        messages.add(new Message(author,time,text));
+                        messages.add(new Message(author,time,text, i >= timeSliceA && i <= timeSliceB));
                     }
                 }
             } catch (IOException ex) {
@@ -439,7 +427,7 @@ public class Corpus {
         int timeSliceB = convertDayToTimeSlice(Double.parseDouble(interval[1]));
         String term = event.getTextualDescription().split(" ")[0];
         NumberFormat formatter = new DecimalFormat("00000000");
-        for(int i = timeSliceA; i <= timeSliceB; i++){
+        for(int i = AppParameters.timeSliceA; i <= AppParameters.timeSliceB; i++){
             try {
                 File textFile = new File(path+File.separator+preprocessing+File.separator+formatter.format(i)+".text");
                 File timeFile = new File(path+File.separator+preprocessing+File.separator+formatter.format(i)+".time");
@@ -457,15 +445,15 @@ public class Corpus {
                             test[j] = 0;
                         }
                     }
-                    if(StringUtils.containsIgnoreCase(text,term)){
-                        int testSum = ArrayUtils.sum(test, 0, test.length-1);
+                    if(StringUtils.containsIgnoreCase(text,term)) {
+                        int testSum = ArrayUtils.sum(test, 0, test.length - 1);
                         String author = authorIter.nextLine();
                         String time = timeIter.nextLine();
-                        if(operator==0 && testSum == test.length){
-                            messages.add(new Message(author,time,text));
+                        if (operator == 0 && testSum == test.length) {
+                            messages.add(new Message(author, time, text, i >= timeSliceA && i <= timeSliceB));
                         }
-                        if(operator==1 && testSum > 0){
-                            messages.add(new Message(author,time,text));
+                        if (operator == 1 && testSum > 0) {
+                            messages.add(new Message(author, time, text, i >= timeSliceA && i <= timeSliceB));
                         }
                     }
                 }
@@ -527,10 +515,9 @@ public class Corpus {
         try {
             NumberFormat formatter = new DecimalFormat("00000000");
             List<String> lines = FileUtils.readLines(new File(path+File.separator+preprocessing+File.separator+formatter.format(timeSlice)+".text"));
+            Analyzer analyzer = new StandardAnalyzer();
             for(String line : lines){
-                for(int i = 0; i < line.length(); i++)
-                    if(Character.isWhitespace(line.charAt(i))) count++;
-                count++;
+                count += Tokenizer.tokenizeString(analyzer, line).stream().filter(word -> !AppParameters.stopwords.contains(word)).count();
             }
         } catch (IOException ex) {
             Logger.getLogger(Corpus.class.getName()).log(Level.SEVERE, null, ex);

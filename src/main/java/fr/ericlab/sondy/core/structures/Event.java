@@ -16,35 +16,68 @@
  */
 package main.java.fr.ericlab.sondy.core.structures;
 
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleStringProperty;
+
+import java.io.IOException;
+import java.io.Serializable;
 
 /**
  *
  *   @author Adrien GUILLE, Laboratoire ERIC, Université Lumière Lyon 2
  */
-public class Event {
-    private final SimpleStringProperty textualDescription;
-    private final SimpleStringProperty temporalDescription;
-    
-    public Event(String text, String temp){
+public class Event implements Serializable {
+    private SimpleStringProperty textualDescription;
+    private SimpleStringProperty temporalDescription;
+    private SimpleDoubleProperty score;
+
+    public Event(String text, String temp) {
+        this(text, temp, 0);
+    }
+
+    public Event(String text, String temp, double score) {
         textualDescription = new SimpleStringProperty(text);
         temporalDescription = new SimpleStringProperty(temp);
+        this.score = new SimpleDoubleProperty(score);
     }
 
     public String getTextualDescription() {
         return textualDescription.get();
     }
-    
+
     public String getTemporalDescription() {
         return temporalDescription.get();
     }
-    
-    public void setTextualDescription(String newText){
+
+    public void setTextualDescription(String newText) {
         textualDescription.set(newText);
     }
-    
-    public void setTemporalDescription(String newTemp){
+
+    public void setTemporalDescription(String newTemp) {
         temporalDescription.set(newTemp);
     }
-}
 
+    public double getScore() {
+        return score.getValue();
+    }
+
+    public void setScore(double score) {
+        this.score.set(score);
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+        out.writeObject(textualDescription.get());
+        out.writeObject(temporalDescription.get());
+        out.writeDouble(score.get());
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws IOException {
+        try {
+            textualDescription = new SimpleStringProperty((String)in.readObject());
+            temporalDescription = new SimpleStringProperty((String)in.readObject());
+            score = new SimpleDoubleProperty(in.readDouble());
+        } catch (ClassNotFoundException ignored) {
+            throw new IOException(ignored);
+        }
+    }
+}

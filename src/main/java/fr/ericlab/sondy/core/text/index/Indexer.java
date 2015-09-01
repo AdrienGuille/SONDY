@@ -16,6 +16,7 @@
  */
 package main.java.fr.ericlab.sondy.core.text.index;
 
+import com.google.common.collect.Lists;
 import main.java.fr.ericlab.sondy.core.app.AppParameters;
 import main.java.fr.ericlab.sondy.core.utils.HashMapUtils;
 import java.io.File;
@@ -23,16 +24,13 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
@@ -49,21 +47,19 @@ public final class Indexer extends Thread {
     String directory;
     int from;
     int to;
-    boolean mention;
-    ArrayList<HashMap<String,Short>> mapList;
-    HashMap<Integer,Integer> messageCountDistribution;
-    int messageCount;
+    HashMap<CalculationType, ArrayList<HashMap<String,Short>>> mapList;
+    HashMap<CalculationType, HashMap<Integer,Integer>> messageCountDistribution;
+    HashMap<CalculationType, Integer> messageCount;
     
     public Indexer(){
         
     }
     
-    public Indexer(int id, String d, int a, int b, boolean m, int n){
+    public Indexer(int id, String d, int a, int b){
         directory = d;
         threadId = id;
         from = a;
         to = b;
-        mention = m;
     }
     
     public ArrayList<String> getMostFrequentWords(String text, String sourceWord, int numberOfWords){
@@ -90,9 +86,9 @@ public final class Indexer extends Thread {
         List<String> strings = Tokenizer.tokenizeString(analyzer, cleanText);
         for(String string : strings){
             if(string.length()>=minWordLength){
-                Short count = map.get(string);
-                if(count == null){
-                    count = 0;
+                Short count = 0;
+                if(map.containsKey(string)) {
+                    count = map.get(string);
                 }
                 count++;
                 map.put(string,count);
@@ -101,53 +97,77 @@ public final class Indexer extends Thread {
         return map;
     }
     
-    public HashMap<String,Short> indexFile(int i, String filePath) {
-        HashMap<String,Short> map = new HashMap<>();
+    public void indexFile(int i, String filePath) {
         try {
             List<String> lines = FileUtils.readLines(new File(filePath));
             Analyzer analyzer = new StandardAnalyzer();
-            int messageCountFile = 0;
+
+            HashMap<CalculationType, Integer> messageCountFile = new HashMap<>();
+            HashMap<CalculationType, HashMap<String,Short>> allMap = new HashMap<>();
+            for (CalculationType type : CalculationType.values()) {
+                messageCountFile.put(type, 0);
+                allMap.put(type, new HashMap<>());
+            }
             for(String line : lines){
-                if(!mention || (mention && line.contains("@"))){
-                    messageCountFile++;
-                    String cleanLine = line.toLowerCase();
-                    List<String> strings = Tokenizer.tokenizeString(analyzer, cleanLine);
-                    for(String string : strings){
-                        if(string.length()>=minWordLength){
-                            Short count = map.get(string);
-                            if(count == null){
-                                count = 0;
+                String cleanLine = line.toLowerCase();
+                List<String> strings = Tokenizer.tokenizeString(analyzer, cleanLine).stream().filter(string -> string.length() >= minWordLength).collect(Collectors.toList());
+                for (CalculationType type : CalculationType.values()) {
+                    if (type == CalculationType.Mention && !line.contains("@"))
+                        continue;
+                    messageCountFile.put(type, messageCountFile.getOrDefault(type, 0) + 1);
+                    HashMap<String,Short> map = allMap.get(type);
+                    if (type == CalculationType.Existence) {
+                        for (String string : strings.stream().distinct().collect(Collectors.toList())) {
+                            Short count = 0;
+                            if (map.containsKey(string)) {
+                                count = map.get(string);
                             }
                             count++;
                             map.put(string,count);
                         }
                     }
+                    else {
+                        for (String string : strings) {
+                            Short count = 0;
+                            if (map.containsKey(string)) {
+                                count = map.get(string);
+                            }
+                            count++;
+                            map.put(string, count);
+                        }
+                    }
                 }
             }
-            messageCountDistribution.put(i,messageCountFile);
-            messageCount += messageCountFile;
+            for (CalculationType type : CalculationType.values()) {
+                messageCountDistribution.get(type).put(i, messageCountFile.get(type));
+                messageCount.put(type, messageCount.get(type) + messageCountFile.get(type));
+                mapList.get(type).add(allMap.get(type));
+            }
         } catch (IOException ex) {
             Logger.getLogger(Indexer.class.getName()).log(Level.SEVERE, null, ex);
         }
-        return map;
     }
 
     @Override
     public void run() {
         messageCountDistribution = new HashMap<>();
-        mapList = new ArrayList<>(to-from+10);
+        mapList = new HashMap<>();
+        messageCount = new HashMap<>();
+        for (CalculationType type : CalculationType.values()) {
+            messageCountDistribution.put(type, new HashMap<>());
+            mapList.put(type, new ArrayList<>(to-from));
+            messageCount.put(type, 0);
+        }
         NumberFormat formatter = new DecimalFormat("00000000");
-        for(int i = from; i <= to; i++){
-            mapList.add(indexFile(i,directory+File.separator+formatter.format(i)+".text"));
+        for(int i = from; i < to; i++){
+            indexFile(i, directory + File.separator + formatter.format(i) + ".text");
         }
     }
     
     public static HashSet<String> getVocabulary(List<HashMap<String,Short>> mapList){
         HashSet<String> vocabulary = new HashSet<>();
         for(HashMap<String,Short> map : mapList){
-            for(String string : map.keySet()){
-                vocabulary.add(string);
-            }
+            vocabulary.addAll(map.keySet());
         }
         return vocabulary;
     }

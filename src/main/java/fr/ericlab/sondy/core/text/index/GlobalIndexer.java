@@ -17,17 +17,16 @@
 package main.java.fr.ericlab.sondy.core.text.index;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.Map.Entry;
+import java.util.stream.IntStream;
+
+import main.java.fr.ericlab.sondy.core.structures.DocumentTermMatrix;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.filefilter.WildcardFileFilter;
 
 /**
  *
@@ -36,98 +35,101 @@ import org.apache.commons.io.FileUtils;
 public class GlobalIndexer {
     
     int numberOfThreads;
-    boolean mention;
-    int messageCount;
-    
-    public GlobalIndexer(int nbThreads, boolean m){
+
+    public GlobalIndexer(int nbThreads){
         numberOfThreads = nbThreads;
-        mention = m;
     }
     
-    public void index(String directory) throws InterruptedException, FileNotFoundException, IOException {
+    public void index(String directory) throws InterruptedException, IOException {
+        int messageCount;
         ArrayList<HashMap<String,Short>> mapList = new ArrayList<>(1500);
-        String[] fileArray = new File(directory).list();
-        int fileCount = 0;
-        for(String filename : fileArray){
-            if(filename.endsWith(".text"))
-                fileCount++;
-        }
+        String[] fileArray = new File(directory).list(new WildcardFileFilter("*.text"));
+        int fileCount = fileArray.length;
         int fileCountPerThread = fileCount/numberOfThreads;
         LinkedList<Indexer> indexers = new LinkedList<>();
         for(int i = 0; i < numberOfThreads; i++){
-            int upperBound = (i==numberOfThreads-1)?fileCount-1:fileCountPerThread*(i+1);
-            indexers.add(new Indexer(i,directory,fileCountPerThread*i+1,upperBound,mention,1));
+            int upperBound = (i==numberOfThreads-1)?fileCount:fileCountPerThread*(i+1);
+            indexers.add(new Indexer(i,directory,fileCountPerThread*i,upperBound));
             indexers.get(i).start();
         }
         for(Indexer indexer : indexers){
             indexer.join();
         }
-        int messageCountDistribution[] = new int[fileCount];
-        for(int i = 0; i < numberOfThreads; i++){
-            Indexer indexer = indexers.get(i);
-            mapList.addAll(indexer.mapList);
-            messageCount += indexer.messageCount;
-            for(Entry entry : indexer.messageCountDistribution.entrySet()){
-                messageCountDistribution[(int) entry.getKey()] = (int) entry.getValue();
-            }
-        }
-        indexers.clear();
-        System.gc();
-        mapList.trimToSize();
-        HashSet<String> vocabulary = getVocabulary(mapList);
-        ArrayList<String> vocabularyList = new ArrayList<>();
-        vocabularyList.addAll(vocabulary);
-        vocabularyList.trimToSize();
-        vocabulary.clear();
-        int numberOfWordsPerThread = vocabularyList.size()/numberOfThreads;
-        HashSet<String> newVocabulary = new HashSet<>();
-        LinkedList<Analyzer> analyzers = new LinkedList<>();
-        for(int i = 0; i < numberOfThreads; i++){
-            int upperBound = (i==numberOfThreads-1)?vocabularyList.size()-1:numberOfWordsPerThread*(i+1);
-            analyzers.add(new Analyzer(i,numberOfWordsPerThread*i+1,upperBound,mapList,vocabularyList,fileCount));
-            analyzers.get(i).start();
-        }
-        for(Analyzer analyzer : analyzers){
-            analyzer.join();
-        }
-        for(Analyzer analyzer : analyzers){
-            newVocabulary.addAll(analyzer.newVocabulary);
-        }
-        analyzers.clear();
-        ArrayList<String> newVocabularyList = new ArrayList<>();
-        newVocabularyList.addAll(newVocabulary);
-        newVocabularyList.trimToSize();
-        int newVocabularySize = newVocabularyList.size();
-        newVocabulary.clear();
-        short[][] frequencyMatrix = new short[newVocabularySize][fileCount];
-        for(int i = 0; i < newVocabularySize; i++){
-            String word = newVocabularyList.get(i); 
-            for(int j = 0; j < fileCount-1; j++){
-                Short count = mapList.get(j).get(word);
-                count = (count==null)?0:count;
-                frequencyMatrix[i][j] = count;
-            }
-        }
-        directory = (directory.endsWith("/"))?directory:directory+"/";
+        directory = (directory.endsWith("/")) ? directory : directory + "/";
         directory += "indexes/";
         File dir = new File(directory);
-        if(!dir.exists()){
+        if (!dir.exists()) {
             dir.mkdir();
         }
-        String matrixFilename = (mention)?"mentionFrequencyMatrix.dat":"frequencyMatrix.dat";
-        FileOutputStream fosMatrix = new FileOutputStream(directory+matrixFilename);
-        ObjectOutputStream oosMatrix = new ObjectOutputStream(fosMatrix);
-        oosMatrix.writeObject(frequencyMatrix);
-        String vocabularyFilename = (mention)?"mentionVocabulary.dat":"vocabulary.dat";
-        FileOutputStream fosVocabulary = new FileOutputStream(directory+vocabularyFilename);
-        ObjectOutputStream oosVocabulary = new ObjectOutputStream(fosVocabulary);
-        oosVocabulary.writeObject(newVocabularyList);
-        String messageCountFilename = (mention)?"messageCountMention.txt":"messageCount.txt";
-        FileUtils.write(new File(directory+messageCountFilename), messageCount+"");
-        String messageCountDistributionFilename = (mention)?"messageMentionCountDistribution.dat":"messageCountDistribution.dat";
-        FileOutputStream fosDistribution = new FileOutputStream(directory+messageCountDistributionFilename);
-        ObjectOutputStream oosDistribution = new ObjectOutputStream(fosDistribution);
-        oosDistribution.writeObject(messageCountDistribution);
+        for (CalculationType type : CalculationType.values()) {
+            Integer messageCountDistribution[] = new Integer[fileCount];
+            mapList.clear();
+            messageCount = 0;
+            for (int i = 0; i < numberOfThreads; i++) {
+                Indexer indexer = indexers.get(i);
+                mapList.addAll(indexer.mapList.get(type));
+                messageCount += indexer.messageCount.get(type);
+                for (Entry entry : indexer.messageCountDistribution.get(type).entrySet()) {
+                    messageCountDistribution[(int) entry.getKey()] = (int) entry.getValue();
+                }
+            }
+            mapList.trimToSize();
+            HashSet<String> vocabulary = getVocabulary(mapList);
+            ArrayList<String> vocabularyList = new ArrayList<>();
+            vocabularyList.addAll(vocabulary);
+            vocabularyList.trimToSize();
+            vocabulary.clear();
+            int numberOfWordsPerThread = vocabularyList.size() / numberOfThreads;
+            HashSet<String> newVocabulary = new HashSet<>();
+            LinkedList<Analyzer> analyzers = new LinkedList<>();
+            for (int i = 0; i < numberOfThreads; i++) {
+                int upperBound = (i == numberOfThreads - 1) ? vocabularyList.size() : numberOfWordsPerThread * (i + 1);
+                analyzers.add(new Analyzer(i, numberOfWordsPerThread * i, upperBound, mapList, vocabularyList, fileCount));
+                analyzers.get(i).start();
+            }
+            for (Analyzer analyzer : analyzers) {
+                analyzer.join();
+            }
+            for (Analyzer analyzer : analyzers) {
+                newVocabulary.addAll(analyzer.newVocabulary);
+            }
+            analyzers.clear();
+            DocumentTermMatrix dtm = new DocumentTermMatrix();
+            ArrayList<String> newVocabularyList = new ArrayList<>();
+            newVocabularyList.addAll(newVocabulary);
+            newVocabularyList.trimToSize();
+            dtm.setTerms(newVocabularyList);
+            dtm.setNumberOfDocuments(messageCountDistribution);
+            dtm.prepareDocumentTermSize(mapList.stream().mapToInt(doc -> doc.size()).sum());
+
+            try {
+                IntStream.range(0, fileCount)
+                    .parallel()
+                    .forEach(doc -> {
+                        try {
+                            mapList.get(doc).forEach((term, freq) -> {
+                                try {
+                                    dtm.setTermDocumentFrequencyWithoutCheck(term, doc, freq);
+                                } catch (Exception exp) {
+                                    exp.printStackTrace();
+                                }
+                            });
+                        } catch (Exception exp) {
+                            exp.printStackTrace();
+                        }
+                    });
+            } catch (Exception exp) {
+                exp.printStackTrace();
+            }
+            String matrixFilename = type.name() + "FrequencyMatrix.dat";
+            FileOutputStream fosMatrix = new FileOutputStream(directory + matrixFilename);
+            ObjectOutputStream oosMatrix = new ObjectOutputStream(fosMatrix);
+            oosMatrix.writeObject(dtm);
+            oosMatrix.close();
+            String messageCountFilename = type.name() + "MessageCount.txt";
+            FileUtils.write(new File(directory + messageCountFilename), messageCount + "");
+        }
+        indexers.clear();
     }
     
     public static HashSet<String> getVocabulary(List<HashMap<String,Short>> mapList){

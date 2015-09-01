@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2015 Adrien Guille <adrien.guille@univ-lyon2.fr>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -17,7 +17,12 @@
 package main.java.fr.ericlab.sondy.core.app;
 
 import com.sun.javafx.css.StyleManager;
+import main.java.fr.ericlab.sondy.core.structures.DocumentTermFrequencyItem;
+import main.java.fr.ericlab.sondy.core.structures.DocumentTermMatrix;
 import main.java.fr.ericlab.sondy.core.ui.GlobalUI;
+
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import javafx.application.Application;
 import static javafx.application.Application.launch;
@@ -31,7 +36,7 @@ import org.controlsfx.control.PropertySheet;
  */
 public class Main extends Application {
     
-    public static final int windowHeight = 700;
+    public static final int windowHeight = 710;
     public static final int columnWidthRIGHT = 250;
     public static final int columnWidthLEFT = 600;
     public static final int windowWidth = columnWidthRIGHT+columnWidthLEFT+15;

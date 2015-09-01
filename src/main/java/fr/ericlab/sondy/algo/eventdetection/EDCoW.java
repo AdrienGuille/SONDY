@@ -18,14 +18,13 @@ package main.java.fr.ericlab.sondy.algo.eventdetection;
 
 import ch.epfl.lis.jmod.modularity.community.Community;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
+import java.util.*;
+
+import com.google.common.collect.Lists;
 import main.java.fr.ericlab.sondy.core.app.AppParameters;
 import main.java.fr.ericlab.sondy.core.structures.Event;
 import main.java.fr.ericlab.sondy.algo.Parameter;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map;
+
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import main.java.fr.ericlab.sondy.algo.eventdetection.edcow.EDCoWEvent;
@@ -33,6 +32,7 @@ import main.java.fr.ericlab.sondy.algo.eventdetection.edcow.EDCoWKeyword;
 import main.java.fr.ericlab.sondy.algo.eventdetection.edcow.EDCoWModularityDetection;
 import main.java.fr.ericlab.sondy.algo.eventdetection.edcow.EDCoWThreshold;
 import main.java.fr.ericlab.sondy.core.structures.Events;
+import main.java.fr.ericlab.sondy.core.text.index.CalculationType;
 
 /**
  *
@@ -45,7 +45,7 @@ public class EDCoW extends EventDetectionMethod {
     int gamma = 5;  
     double minTermSupport = 0.0001;
     double maxTermSupport = 0.01;
-    HashMap<String,short[]> termDocMap;
+    HashMap<String,Short[]> termDocMap;
     LinkedList<EDCoWEvent> eventList;
     
     public EDCoW(){
@@ -83,10 +83,10 @@ public class EDCoW extends EventDetectionMethod {
         int windows = (AppParameters.timeSliceB-AppParameters.timeSliceA)/delta2;
         termDocMap = new HashMap<>();
         eventList = new LinkedList<>();
-        for(int i = AppParameters.timeSliceA; i < AppParameters.timeSliceB; i++){
-            String term = AppParameters.dataset.corpus.vocabulary.get(i);
+        for(int i = 0; i < AppParameters.dataset.corpus.termFrequencies.get(CalculationType.Frequency).getTerms().size(); i++){
+            String term = AppParameters.dataset.corpus.termFrequencies.get(CalculationType.Frequency).getTerms().get(i);
             if(term.length()>1 && !AppParameters.stopwords.contains(term)){
-                short[] frequency = AppParameters.dataset.corpus.termFrequencies[i];
+                Short[] frequency = AppParameters.dataset.corpus.termFrequencies.get(CalculationType.Frequency).getDocumentsTermFrequency(i);
                 int cf = 0;
                 for(short freq : frequency){
                     cf += freq;
@@ -102,7 +102,7 @@ public class EDCoW extends EventDetectionMethod {
         Collections.sort(eventList);
         events = new Events();
         for(EDCoWEvent event : eventList){
-            events.list.add(new Event(event.getKeywordsAsString(),AppParameters.dataset.corpus.convertTimeSliceToDay((int)event.endSlice)+","+AppParameters.dataset.corpus.convertTimeSliceToDay((int)event.startSlice)));
+            events.list.add(new Event(event.getKeywordsAsString(),AppParameters.dataset.corpus.convertTimeSliceToDay((int)event.startSlice)+","+AppParameters.dataset.corpus.convertTimeSliceToDay((int)event.endSlice)));
         }
         events.setFullList();
     }
@@ -110,15 +110,15 @@ public class EDCoW extends EventDetectionMethod {
     public void processWindow(int window){
     	try{
             LinkedList<EDCoWKeyword> keyWords = new LinkedList<>();
-            int[] distributioni = AppParameters.dataset.corpus.messageDistribution;       
+            Integer[] distributioni = AppParameters.dataset.corpus.termFrequencies.get(CalculationType.Frequency).getNumberOfDocuments();
             double[] distributiond = new double[delta2];
             int startSlice = window*delta2;
             int endSlice = startSlice+delta2-1;
             for(int i = startSlice; i < endSlice;  i++){
                 distributiond[i-startSlice] = (double) distributioni[i]; 
             }
-            for(Map.Entry<String, short[]> entry : termDocMap.entrySet()){
-                short frequencyf[] = entry.getValue();
+            for(Map.Entry<String, Short[]> entry : termDocMap.entrySet()){
+                Short frequencyf[] = entry.getValue();
                 double frequencyd[] = new double[delta2];
                 for(int i = startSlice; i < endSlice; i++){
                     frequencyd[i-startSlice] = (double) frequencyf[i];

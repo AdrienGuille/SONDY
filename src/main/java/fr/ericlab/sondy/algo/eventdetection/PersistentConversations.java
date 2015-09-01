@@ -19,6 +19,7 @@ package main.java.fr.ericlab.sondy.algo.eventdetection;
 import main.java.fr.ericlab.sondy.core.app.AppParameters;
 import main.java.fr.ericlab.sondy.core.structures.Event;
 import main.java.fr.ericlab.sondy.algo.Parameter;
+import main.java.fr.ericlab.sondy.core.text.index.CalculationType;
 import main.java.fr.ericlab.sondy.core.utils.HashMapUtils;
 import java.util.HashMap;
 import java.util.Map;
@@ -60,27 +61,27 @@ public class PersistentConversations extends EventDetectionMethod {
         double minTermOccur = parameters.getParameterValue("minTermSupport") * AppParameters.dataset.corpus.messageCount;
         double maxTermOccur = parameters.getParameterValue("maxTermSupport") * AppParameters.dataset.corpus.messageCount;
         Map<Event,Double> scores = new HashMap<>();
-        for(int i = 0; i < AppParameters.dataset.corpus.vocabulary.size(); i++){
-            String term = AppParameters.dataset.corpus.vocabulary.get(i);
+        for(int i = 0; i < AppParameters.dataset.corpus.termFrequencies.get(CalculationType.Existence).getTerms().size(); i++){
+            String term = AppParameters.dataset.corpus.termFrequencies.get(CalculationType.Existence).getTerms().get(i);
             if(term.length()>1 && !AppParameters.stopwords.contains(term)){
                 double tf = 0, cf = 0;
                 int peakIndex = 0;
                 for(int j = AppParameters.timeSliceA; j < AppParameters.timeSliceB; j++){
-                    cf += AppParameters.dataset.corpus.termFrequencies[i][j];
-                    if(AppParameters.dataset.corpus.termFrequencies[i][j]>tf){
-                        tf = AppParameters.dataset.corpus.termFrequencies[i][j];
+                    cf += AppParameters.dataset.corpus.termFrequencies.get(CalculationType.Existence).getTermDocumentFrequency(i, j);
+                    if(AppParameters.dataset.corpus.termFrequencies.get(CalculationType.Existence).getTermDocumentFrequency(i, j)>tf){
+                        tf = AppParameters.dataset.corpus.termFrequencies.get(CalculationType.Existence).getTermDocumentFrequency(i, j);
                         peakIndex = j;
                     }
                 }
                 if(cf > minTermOccur && cf < maxTermOccur){
                     double avgBeforePeak = 0;
                     for(int k = AppParameters.timeSliceA; k <= peakIndex; k++){
-                        avgBeforePeak += AppParameters.dataset.corpus.termFrequencies[i][k];
+                        avgBeforePeak += AppParameters.dataset.corpus.termFrequencies.get(CalculationType.Existence).getTermDocumentFrequency(i, k);
                     }
                     avgBeforePeak = avgBeforePeak/(peakIndex+1);
                     double avgAfterPeak = 0;
                     for(int k = peakIndex; k < AppParameters.timeSliceB; k++){
-                        avgAfterPeak += AppParameters.dataset.corpus.termFrequencies[i][k];
+                        avgAfterPeak += AppParameters.dataset.corpus.termFrequencies.get(CalculationType.Existence).getTermDocumentFrequency(i, k);
                     }
                     avgAfterPeak = avgAfterPeak/(AppParameters.timeSliceB-peakIndex);
                     scores.put(new Event(term,AppParameters.dataset.corpus.convertTimeSliceToDay(peakIndex)+","+AppParameters.dataset.corpus.convertTimeSliceToDay(peakIndex+1)), avgAfterPeak/avgBeforePeak);

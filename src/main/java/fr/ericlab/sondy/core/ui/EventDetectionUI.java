@@ -16,14 +16,21 @@
  */
 package main.java.fr.ericlab.sondy.core.ui;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.ObjectInputStream;
 import java.time.Instant;
 import java.util.Date;
+
+import com.google.common.base.Strings;
 import main.java.fr.ericlab.sondy.algo.eventdetection.EventDetectionMethod;
 import main.java.fr.ericlab.sondy.core.app.AppParameters;
 import main.java.fr.ericlab.sondy.core.app.Main;
 import main.java.fr.ericlab.sondy.core.structures.Event;
 import main.java.fr.ericlab.sondy.core.structures.Events;
 import main.java.fr.ericlab.sondy.algo.Parameter;
+import main.java.fr.ericlab.sondy.core.text.index.CalculationType;
 import main.java.fr.ericlab.sondy.core.ui.factories.EventTableContextMenu;
 import main.java.fr.ericlab.sondy.core.utils.ArrayUtils;
 import main.java.fr.ericlab.sondy.core.utils.UIUtils;
@@ -114,6 +121,9 @@ public class EventDetectionUI {
     LineChart<Number,Number> frequencyChart;
     int maxNumberOfCurves = 3;
     Rectangle rectangleSelection;
+
+    // Saved events
+    String directory;
     
     public EventDetectionUI(){
         // Initializing the main grid
@@ -121,11 +131,13 @@ public class EventDetectionUI {
         grid.setPadding(new Insets(5, 5, 5, 5));
         
         // Adding separators
-        grid.add(new Text("Available methods"),0,0);
-        grid.add(new Separator(),0,1);
-        grid.add(new Text("Detected events"),0,3);
+        grid.add(new Text("Available methods"), 0, 0);
+        grid.add(new Separator(), 0, 1);
+        grid.add(new Text("Detected events"), 0, 3);
         grid.add(new Separator(),0,4);
-        
+
+        directory = "";
+
         availabeMethodsUI();
         detectedEventsUI();        
     }
@@ -136,7 +148,7 @@ public class EventDetectionUI {
         methodDescriptionLabel.setId("smalltext");
         UIUtils.setSize(methodDescriptionLabel,Main.columnWidthLEFT,24);
         VBox methodsLEFT = new VBox();
-        methodsLEFT.getChildren().addAll(methodList,new Rectangle(0,3),methodDescriptionLabel);
+        methodsLEFT.getChildren().addAll(methodList, new Rectangle(0, 3), methodDescriptionLabel);
         // Right part
         applyButton = createApplyMethodButton();
         UIUtils.setSize(applyButton, Main.columnWidthRIGHT, 24);
@@ -144,11 +156,11 @@ public class EventDetectionUI {
         UIUtils.setSize(parameterTable, Main.columnWidthRIGHT, 64);
         initializeParameterTable();
         VBox methodsRIGHT = new VBox();
-        methodsRIGHT.getChildren().addAll(parameterTable,new Rectangle(0,3),applyButton);
+        methodsRIGHT.getChildren().addAll(parameterTable, new Rectangle(0, 3), applyButton);
         // Both parts
         HBox methodsBOTH = new HBox(5);
-        methodsBOTH.getChildren().addAll(methodsLEFT,methodsRIGHT);
-        grid.add(methodsBOTH,0,2);
+        methodsBOTH.getChildren().addAll(methodsLEFT, methodsRIGHT);
+        grid.add(methodsBOTH, 0, 2);
     }
 
     public final void detectedEventsUI(){
@@ -173,8 +185,8 @@ public class EventDetectionUI {
             };
         filterEventsField.setOnKeyReleased(enterPressed);
         detectedEventsRIGHT.getChildren().addAll(filterEventsField,eventTable,createTimelineButton());
-        detectedEventsBOTH.getChildren().addAll(frequencyChart,detectedEventsRIGHT);
-        grid.add(detectedEventsBOTH,0,5);
+        detectedEventsBOTH.getChildren().addAll(frequencyChart, detectedEventsRIGHT);
+        grid.add(detectedEventsBOTH, 0, 5);
         rectangleSelection = new Rectangle(0,240);
         rectangleSelection.setOpacity(0.22);
         rectangleSelection.setTranslateY(-28);
@@ -192,6 +204,16 @@ public class EventDetectionUI {
                 selectedMethod = (EventDetectionMethod) Class.forName(methodMap.get(new_val)).newInstance();
                 methodDescriptionLabel.setText(selectedMethod.getDescription());
                 parameterTable.setItems(selectedMethod.parameters.list);
+                if (AppParameters.dataset.path != null && !Strings.isNullOrEmpty(AppParameters.dataset.corpus.preprocessing)) {
+                    directory = AppParameters.dataset.path + File.separator + AppParameters.dataset.corpus.preprocessing + File.separator + "events" + File.separator + selectedMethod.getName();
+                    File dir = new File(directory);
+                    if (!dir.exists())
+                        dir.mkdirs();
+                    checkLoadResults();
+                }
+                else {
+                    directory = "";
+                }
             } catch (ClassNotFoundException | InstantiationException | IllegalAccessException ex) {
                 Logger.getLogger(EventDetectionUI.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -212,10 +234,11 @@ public class EventDetectionUI {
                 @Override
                 public void handle(CellEditEvent<Parameter, String> t) {
                     ((Parameter) t.getTableView().getItems().get(t.getTablePosition().getRow())).setValue(t.getNewValue());
+                    checkLoadResults();
                 }
             }
         );
-        parameterTable.getColumns().addAll(keyColumn,valueColumn);
+        parameterTable.getColumns().addAll(keyColumn, valueColumn);
     }
     
     public final void initializeEventTable(){
@@ -223,14 +246,17 @@ public class EventDetectionUI {
         eventTable.setItems(eventList.observableList);
         UIUtils.setSize(eventTable, Main.columnWidthRIGHT, 247);
         TableColumn textualDescription = new TableColumn("Textual desc.");
-        textualDescription.setMinWidth(Main.columnWidthRIGHT/2);
+        textualDescription.setMinWidth(Main.columnWidthRIGHT * 0.35);
         TableColumn temporalDescription = new TableColumn("Temporal desc.");
-        temporalDescription.setMinWidth(Main.columnWidthRIGHT/2-1);
+        temporalDescription.setMinWidth(Main.columnWidthRIGHT * 0.35);
+        TableColumn eventScore = new TableColumn("Score");
+        eventScore.setMinWidth(Main.columnWidthRIGHT * 0.3);
         textualDescription.setCellValueFactory(new PropertyValueFactory<>("textualDescription"));
         temporalDescription.setCellValueFactory(new PropertyValueFactory<>("temporalDescription"));
+        eventScore.setCellValueFactory(new PropertyValueFactory<>("score"));
         EventTableContextMenu tableCellFactory = new EventTableContextMenu(createSelectedEventHandler(), new ContextMenu());
         textualDescription.setCellFactory(tableCellFactory);
-        eventTable.getColumns().addAll(textualDescription,temporalDescription);
+        eventTable.getColumns().addAll(textualDescription,temporalDescription,eventScore);
     }
     
     public final Button createApplyMethodButton(){
@@ -282,12 +308,12 @@ public class EventDetectionUI {
         frequencyChart.setLegendVisible(true);
         frequencyChart.setCreateSymbols(false);
         frequencyChart.setTranslateX(-5);
-        UIUtils.setSize(frequencyChart, Main.columnWidthLEFT+5, 300);
+        UIUtils.setSize(frequencyChart, Main.columnWidthLEFT + 5, 300);
     }
     
     public final Button createTimelineButton(){
         Button button = new Button("Generate timeline");
-        UIUtils.setSize(button,Main.columnWidthRIGHT,24);
+        UIUtils.setSize(button, Main.columnWidthRIGHT, 24);
         button.setOnAction((ActionEvent ae) -> {
             createTimelineStage();
         });
@@ -314,8 +340,8 @@ public class EventDetectionUI {
         frequencyChart.getData().clear();
         String[] terms = AppParameters.event.getTextualDescription().split(" ");
         for(int j = 0; j < maxNumberOfCurves && j < terms.length; j++){
-            short[] frequency = AppParameters.dataset.corpus.getTermFrequency(terms[j]);
-            int windowSize = AppParameters.dataset.corpus.messageDistribution.length/Main.columnWidthLEFT;
+            Short[] frequency = AppParameters.dataset.corpus.getTermFrequency(CalculationType.Frequency, terms[j]);
+            int windowSize = AppParameters.dataset.corpus.getMessageDistribution(CalculationType.Frequency).length/Main.columnWidthLEFT;
             float[] smoothedFrequency;
             if(windowSize > 1){
                 smoothedFrequency = ArrayUtils.smoothArray(frequency, windowSize);    
@@ -359,15 +385,17 @@ public class EventDetectionUI {
         stage.setTitle("Messages");
         
         TableView<Message> messageTable = new TableView<>();
-        UIUtils.setSize(messageTable, Main.columnWidthLEFT, 360);
-        
+        UIUtils.setSize(messageTable, Main.columnWidthLEFT, 450);
+
+        TableColumn inEventColumn = new TableColumn("In Event");
         TableColumn authorColumn = new TableColumn("Author");
         TableColumn timeColumn = new TableColumn("Timestamp");
         TableColumn textColumn = new TableColumn("Text");
+        inEventColumn.setCellValueFactory(new PropertyValueFactory<>("inEvent"));
         authorColumn.setCellValueFactory(new PropertyValueFactory<>("author"));
         timeColumn.setCellValueFactory(new PropertyValueFactory<>("time"));
         textColumn.setCellValueFactory(new PropertyValueFactory<>("text"));
-        messageTable.getColumns().addAll(authorColumn,timeColumn,textColumn);
+        messageTable.getColumns().addAll(inEventColumn,authorColumn,timeColumn,textColumn);
         messageTable.setItems(AppParameters.dataset.corpus.getMessages(AppParameters.event));
         
         Text tableText = new Text("Related messages ("+messageTable.getItems().size()+")");
@@ -393,7 +421,7 @@ public class EventDetectionUI {
         operatorList.add("or");
         operatorChoiceBox.setItems(operatorList);
         operatorChoiceBox.getSelectionModel().select(0);
-        UIUtils.setSize(operatorChoiceBox, (Main.columnWidthLEFT-5)/3, 24);
+        UIUtils.setSize(operatorChoiceBox, (Main.columnWidthLEFT - 5) / 3, 24);
         HBox filterMessagesHBox = new HBox(5);
         filterMessagesHBox.getChildren().add(filterMessagesField1);
         filterMessagesHBox.getChildren().add(operatorChoiceBox);
@@ -403,11 +431,15 @@ public class EventDetectionUI {
         filterMessagesButton.setOnAction((ActionEvent ae) -> {
             messageTable.getItems().clear();
             String[] words = filterMessagesField1.getText().split(" ");
-            messageTable.setItems(AppParameters.dataset.corpus.getFilteredMessages(AppParameters.event,words,operatorChoiceBox.getSelectionModel().getSelectedIndex()));
-            tableText.setText("Related messages ("+messageTable.getItems().size()+")");
+            messageTable.setItems(AppParameters.dataset.corpus.getFilteredMessages(AppParameters.event, words, operatorChoiceBox.getSelectionModel().getSelectedIndex()));
+            tableText.setText("Related messages (" + messageTable.getItems().size() + ")");
         });
-        
-        Scene scene = new Scene(VBoxBuilder.create().children(new Text("Topic"),new Separator(),topicLabel,new Text("Time interval"),new Separator(),intervalLabel,tableText,new Separator(),messageTable,filterMessagesHBox,filterMessagesButton).alignment(Pos.CENTER).padding(new Insets(10)).spacing(3).build());
+        VBox box = new VBox();
+        box.getChildren().addAll(new Text("Topic"),new Separator(),topicLabel,new Text("Time interval"),new Separator(),intervalLabel,tableText,new Separator(),messageTable,filterMessagesHBox,filterMessagesButton);
+        box.setAlignment(Pos.CENTER);
+        box.setPadding(new Insets(10));
+        box.setSpacing(3);
+        Scene scene = new Scene(box);
         scene.getStylesheets().add("resources/fr/ericlab/sondy/css/GlobalStyle.css");
         stage.setScene(scene);
         stage.show();
@@ -486,5 +518,54 @@ public class EventDetectionUI {
         dialogStageTimeline.initModality(Modality.APPLICATION_MODAL);
         dialogStageTimeline.setScene(sceneTimeline);
         dialogStageTimeline.show();
+    }
+
+
+    private void checkLoadResults() {
+        if (directory != "") {
+            File fiEventLaunch = new File(directory + File.separator + selectedMethod.getUniqueParameterHash() + ".dat");
+            if (fiEventLaunch.exists()) {
+                AppParameters.disableUI(true);
+                eventTable.getItems().clear();
+                frequencyChart.getData().clear();
+                rectangleSelection.setWidth(0);
+                LogUI.addLogEntry("Loading '" + selectedMethod.getName() + "'...");
+                final Task<String> waitingTask = new Task<String>() {
+                    @Override
+                    public String call() throws Exception {
+                        try {
+                            FileInputStream fisEvents = new FileInputStream(fiEventLaunch);
+                            ObjectInputStream oisEvents = new ObjectInputStream(fisEvents);
+                            Object obj = oisEvents.readObject();
+                            oisEvents.close();
+                            EventDetectionMethod oldResults = (EventDetectionMethod) obj;
+
+                            selectedMethod.events.list = oldResults.events.list;
+                            selectedMethod.events.setFullList();
+                            eventList = selectedMethod.events;
+                            return "Loaded from previous: " + selectedMethod.getLog();
+                        } catch (java.io.IOException e) {
+                            e.printStackTrace();
+                        } catch (ClassNotFoundException e) {
+                            e.printStackTrace();
+                        }
+                        return "" ;
+                    }
+                };
+                waitingTask.setOnSucceeded((WorkerStateEvent event1) -> {
+                    eventTable.getItems().clear();
+                    eventTable.getItems().addAll(eventList.observableList);
+                    AppParameters.disableUI(false);
+                    LogUI.addLogEntry(waitingTask.getValue());
+                });
+                ExecutorService executor = Executors.newSingleThreadExecutor();
+                executor.submit(waitingTask);
+            }
+            else {
+                eventTable.getItems().clear();
+                frequencyChart.getData().clear();
+                rectangleSelection.setWidth(0);
+            }
+        }
     }
 }

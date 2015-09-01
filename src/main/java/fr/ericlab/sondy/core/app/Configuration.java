@@ -35,7 +35,7 @@ public class Configuration {
     public static void initialize(){
         workspace = Paths.get(PropertiesFileUtils.readProperty(Paths.get("./configuration.properties").toString(),"workspace"));
         setWorkspace(workspace.toString());
-        numberOfCores = Runtime.getRuntime().availableProcessors()/2;
+        numberOfCores = Runtime.getRuntime().availableProcessors();///2;
         numberOfCores = (numberOfCores<1)?1:numberOfCores;
     }
     

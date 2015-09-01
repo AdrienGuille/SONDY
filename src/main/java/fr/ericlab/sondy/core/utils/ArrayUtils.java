@@ -38,7 +38,7 @@ public class ArrayUtils {
         return sum;
     }
     
-    static public float[] toFloatArray(short[] array){
+    static public float[] toFloatArray(Short[] array){
         float[] newArray = new float[array.length];
         for(int i = 0; i < array.length; i++){
             newArray[i] = array[i];
@@ -46,7 +46,7 @@ public class ArrayUtils {
         return newArray;
     }
     
-    static public float[] smoothArray(short array[], int windowSize){
+    static public float[] smoothArray(Short array[], int windowSize){
         float[] smoothedArray = new float[array.length];
         for(int i = 0; i < array.length-1; i++){
             smoothedArray[i] = centeredMovingAverage(array, i, windowSize);
@@ -54,7 +54,7 @@ public class ArrayUtils {
         return smoothedArray;
     }
     
-    static public float centeredMovingAverage(short[] array, int index, int windowSize){
+    static public float centeredMovingAverage(Short[] array, int index, int windowSize){
         int halfWindowSize = windowSize/2;
         int possibleLeftWindow = (index >= halfWindowSize)?halfWindowSize:index;
         int possibleRightWindow = (index+halfWindowSize < array.length-1)? halfWindowSize:array.length-2-index;

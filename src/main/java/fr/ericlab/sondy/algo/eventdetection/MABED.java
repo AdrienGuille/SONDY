@@ -25,6 +25,7 @@ import main.java.fr.ericlab.sondy.algo.eventdetection.mabed.MABEDEvent;
 import main.java.fr.ericlab.sondy.algo.eventdetection.mabed.MABEDEventGraph;
 import main.java.fr.ericlab.sondy.algo.eventdetection.mabed.MABEDEventList;
 import main.java.fr.ericlab.sondy.core.app.Configuration;
+import main.java.fr.ericlab.sondy.core.text.index.CalculationType;
 import main.java.fr.ericlab.sondy.core.utils.HashMapUtils;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -75,7 +76,6 @@ public class MABED extends EventDetectionMethod {
 
     @Override
     public void apply() {
-        AppParameters.dataset.corpus.loadMentionFrequencies();
         double minTermOccur = parameters.getParameterValue("minTermSupport") * AppParameters.dataset.corpus.messageCount;
         double maxTermOccur = parameters.getParameterValue("maxTermSupport") * AppParameters.dataset.corpus.messageCount;
         k = (int) parameters.getParameterValue("k");
@@ -85,9 +85,9 @@ public class MABED extends EventDetectionMethod {
         Map<Event,Double> scores = new HashMap<>();
         
         LinkedList<MABEDComponent1> c1Threads = new LinkedList<>();
-        int numberOfWordsPerThread = AppParameters.dataset.corpus.vocabulary.size()/Configuration.numberOfCores;                
+        int numberOfWordsPerThread = AppParameters.dataset.corpus.termFrequencies.get(CalculationType.Mention).getTerms().size()/Configuration.numberOfCores;
         for(int i = 0; i < Configuration.numberOfCores; i++){
-            int upperBound = (i==Configuration.numberOfCores-1)?AppParameters.dataset.corpus.vocabulary.size()-1:numberOfWordsPerThread*(i+1);
+            int upperBound = (i==Configuration.numberOfCores-1)?AppParameters.dataset.corpus.termFrequencies.get(CalculationType.Mention).getTerms().size()-1:numberOfWordsPerThread*(i+1);
             c1Threads.add(new MABEDComponent1(i,numberOfWordsPerThread*i+1,upperBound,(int)minTermOccur,(int)maxTermOccur));
             c1Threads.get(i).start();
         }

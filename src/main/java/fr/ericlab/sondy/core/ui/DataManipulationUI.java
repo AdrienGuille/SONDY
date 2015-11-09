@@ -208,7 +208,7 @@ public class DataManipulationUI {
         gridLEFT.add(TokenizationLabel,0,4);
         gridLEFT.add(new Rectangle(0,3),0,5);
         gridLEFT.add(partitionLabel,0,6);
-        gridLEFT.add(spamRemoveLabel,0,7);
+//        gridLEFT.add(spamRemoveLabel,0,7);
         
         // Values
         stemmingChoiceBox = new ChoiceBox();
@@ -224,13 +224,13 @@ public class DataManipulationUI {
         timeSliceLengthField.setPromptText("time-slice length in minutes (e.g. 30)");
         UIUtils.setSize(timeSliceLengthField, Main.columnWidthLEFT / 2, 24);
         chkSpamRemover = new CheckBox();
-        chkSpamRemover.setText("Remove Spam Tweets");
-        UIUtils.setSize(chkSpamRemover, Main.columnWidthLEFT / 2, 24);
+//        chkSpamRemover.setText("Remove Spam Tweets");
+//        UIUtils.setSize(chkSpamRemover, Main.columnWidthLEFT / 2, 24);
         gridLEFT.add(stemmingChoiceBox,1,0);
         gridLEFT.add(lemmatizationChoiceBox,1,2);
         gridLEFT.add(tokenizationChoiceBox,1,4);
         gridLEFT.add(timeSliceLengthField,1,6);
-        gridLEFT.add(chkSpamRemover,1,7);
+//        gridLEFT.add(chkSpamRemover,1,7);
         
         HBox preprocessDatasetBOTH = new HBox(5);
         preprocessDatasetBOTH.getChildren().addAll(gridLEFT,createPreprocessButton());

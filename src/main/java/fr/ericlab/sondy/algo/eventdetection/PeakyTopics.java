@@ -17,20 +17,12 @@
 package main.java.fr.ericlab.sondy.algo.eventdetection;
 
 import main.java.fr.ericlab.sondy.core.app.AppParameters;
-import main.java.fr.ericlab.sondy.core.structures.DocumentTermFrequencyItem;
-import main.java.fr.ericlab.sondy.core.structures.DocumentTermMatrix;
 import main.java.fr.ericlab.sondy.core.structures.Event;
 import main.java.fr.ericlab.sondy.algo.Parameter;
-import main.java.fr.ericlab.sondy.core.text.index.CalculationType;
 import main.java.fr.ericlab.sondy.core.utils.HashMapUtils;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
-
 import main.java.fr.ericlab.sondy.core.structures.Events;
 
 /**
@@ -41,13 +33,11 @@ import main.java.fr.ericlab.sondy.core.structures.Events;
 public class PeakyTopics extends EventDetectionMethod {
     double minTermSupport = 0.0001;
     double maxTermSupport = 0.01;
-    double peakMinPercentage = 0.5;
     
-    public PeakyTopics() {
+    public PeakyTopics(){
         super();
-        parameters.add(new Parameter("minTermSupport", minTermSupport + ""));
-        parameters.add(new Parameter("maxTermSupport", maxTermSupport + ""));
-        parameters.add(new Parameter("peakMinPercentage", peakMinPercentage + ""));
+        parameters.add(new Parameter("minTermSupport",minTermSupport+""));
+        parameters.add(new Parameter("maxTermSupport",maxTermSupport+""));
     }
 
     @Override
@@ -69,31 +59,30 @@ public class PeakyTopics extends EventDetectionMethod {
     public void apply() {
         double minTermOccur = parameters.getParameterValue("minTermSupport") * AppParameters.dataset.corpus.messageCount;
         double maxTermOccur = parameters.getParameterValue("maxTermSupport") * AppParameters.dataset.corpus.messageCount;
-        peakMinPercentage = parameters.getParameterValue("peakMinPercentage");
-        events = new Events();
-        IntStream.range(0, AppParameters.dataset.corpus.termFrequencies.get(CalculationType.Existence).getTerms().size())
-            .parallel()
-            .mapToObj(i -> {
-                String term = AppParameters.dataset.corpus.termFrequencies.get(CalculationType.Existence).getTerms().get(i);
-                if (term.length() > 1 && !AppParameters.stopwords.contains(term)) {
-                    double cf = 0;
-                    List<DocumentTermFrequencyItem> itmes = AppParameters.dataset.corpus.termFrequencies.get(CalculationType.Existence)
-                        .getDocumentsContainingTerm(i)
-                        .stream()
-                        .filter(dti -> dti.doc_id >= AppParameters.timeSliceA && dti.doc_id < AppParameters.timeSliceB)
-                        .collect(Collectors.toList());
-                    cf = itmes.stream().mapToInt(dti -> dti.frequency).sum();
-                    if (cf > minTermOccur && cf < maxTermOccur) {
-                        DocumentTermFrequencyItem peak = itmes.stream().max((dti1, dti2) -> Integer.compare(dti1.frequency, dti2.frequency)).get();
-                        if (peak.frequency / cf > peakMinPercentage)
-                            return new Event(term, AppParameters.dataset.corpus.convertTimeSliceToDay(peak.doc_id) + "," + AppParameters.dataset.corpus.convertTimeSliceToDay(peak.doc_id + 1) + "", peak.frequency / cf);
+        Map<Event,Double> scores = new HashMap<>();
+        for(int i = 0; i < AppParameters.dataset.corpus.vocabulary.size(); i++){
+            String term = AppParameters.dataset.corpus.vocabulary.get(i);
+            if(term.length()>1 && !AppParameters.stopwords.contains(term)){
+                double tf = 0, cf = 0;
+                int peakIndex = 0;
+                for(int j = AppParameters.timeSliceA; j < AppParameters.timeSliceB; j++){
+                    cf += AppParameters.dataset.corpus.termFrequencies[i][j];
+                    if(AppParameters.dataset.corpus.termFrequencies[i][j]>tf){
+                        tf = AppParameters.dataset.corpus.termFrequencies[i][j];
+                        peakIndex = j;
                     }
                 }
-                return null;
-            })
-            .filter(evt -> evt != null)
-            .sorted((evt1, evt2) -> Double.compare(evt2.getScore(), evt1.getScore()))
-            .forEachOrdered(evt -> events.list.add(evt));
+                if(cf > minTermOccur && cf < maxTermOccur){
+                    scores.put(new Event(term,AppParameters.dataset.corpus.convertTimeSliceToDay(peakIndex)+","+AppParameters.dataset.corpus.convertTimeSliceToDay(peakIndex+1)+""), tf/cf);
+                }
+            }
+        }
+        scores = HashMapUtils.sortByDescValue(scores);
+        Set<Map.Entry<Event, Double>> entrySet = scores.entrySet();
+        events = new Events();
+        for (Map.Entry<Event, Double> entry : entrySet) {
+            events.list.add(entry.getKey());
+        }
         events.setFullList();
     }
 }

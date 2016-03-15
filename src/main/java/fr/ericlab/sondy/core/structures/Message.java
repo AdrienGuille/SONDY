@@ -16,7 +16,6 @@
  */
 package main.java.fr.ericlab.sondy.core.structures;
 
-import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 
 /**
@@ -28,17 +27,11 @@ public class Message {
     public SimpleStringProperty author;
     public SimpleStringProperty time;
     public SimpleStringProperty text;
-    public SimpleBooleanProperty inEvent;
 
-    public Message(String a, String ti, String te) {
-        this(a, ti, te, true);
-    }
-
-    public Message(String a, String ti, String te, boolean inEvent){
+    public Message(String a, String ti, String te){
         author = new SimpleStringProperty(a);
         time = new SimpleStringProperty(ti);
         text = new SimpleStringProperty(te);
-        this.inEvent = new SimpleBooleanProperty(inEvent);
     }
     
     public String getAuthor(){
@@ -52,6 +45,4 @@ public class Message {
     public String getText(){
         return text.get();
     }
-
-    public  boolean isInEvent() { return inEvent.get(); }
 }

@@ -16,13 +16,8 @@
  */
 package main.java.fr.ericlab.sondy.core.structures;
 
-import java.io.IOException;
-import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.List;
-
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
@@ -30,13 +25,13 @@ import javafx.collections.ObservableList;
  *
  *   @author Adrien GUILLE, Laboratoire ERIC, Université Lumière Lyon 2
  */
-public class Events implements Serializable {
+public class Events {
     public LinkedList<Event> list = new LinkedList<>();
     public ObservableList<Event> observableList;
-
-    public Events(ObservableList<Event> ol) {
+    
+    public Events(ObservableList<Event> ol){
         observableList = ol;
-        for (Event e : observableList) {
+        for(Event e : observableList){
             list.add(e);
         }
     }
@@ -44,47 +39,24 @@ public class Events implements Serializable {
     public Events() {
         observableList = FXCollections.observableArrayList();
     }
-
-    public void setFullList() {
+    
+    public void setFullList(){
         observableList.addAll(list);
     }
-
-    public void filterList(String term) {
-        if (term.length() > 0) {
-            if (observableList.size() == 0)
-                setFullList();
-            List<Integer> indexes = new ArrayList<>();
-            for (int i = observableList.size() - 1; i >= 0 ; i--) {
-                if (!observableList.get(i).getTextualDescription().contains(term)) {
+    
+    public void filterList(String term){
+        if(term.length() > 0){
+            HashSet<Integer> indexes = new HashSet<>();
+            for(int i = 0; i < observableList.size(); i++){
+                if(!observableList.get(i).getTextualDescription().contains(term)){
                     indexes.add(i);
                 }
             }
-            for (int j : indexes) {
+            for(int j : indexes){
                 observableList.remove(j);
             }
-        } else {
+        }else{
             setFullList();
-        }
-    }
-
-    private void writeObject(java.io.ObjectOutputStream out) throws IOException {
-        out.writeInt(list.size());
-        for (Event evt : list) {
-            out.writeObject(evt);
-        }
-    }
-
-    private void readObject(java.io.ObjectInputStream in) throws IOException {
-        try {
-            int count = in.readInt();
-            list = new LinkedList<>();
-            observableList = FXCollections.observableArrayList();
-            for (int i = 0; i < count; i++) {
-                list.add((Event)in.readObject());
-            }
-            setFullList();
-        } catch (ClassNotFoundException ignored) {
-            throw new IOException(ignored);
         }
     }
 }

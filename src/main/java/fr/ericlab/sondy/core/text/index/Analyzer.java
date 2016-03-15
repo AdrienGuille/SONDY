@@ -24,7 +24,6 @@ import java.util.HashMap;
  *   @author Adrien GUILLE, Laboratoire ERIC, Université Lumière Lyon 2
  */
 public class Analyzer extends Thread {
-    final int minimumFrequency = 10;
     int threadId;
     int from;
     int to;
@@ -44,22 +43,17 @@ public class Analyzer extends Thread {
     
     @Override
     public void run() {
-        newVocabulary = new ArrayList<>(to-from);
-        for(int j = from; j < to; j++){
+        newVocabulary = new ArrayList<>(to-from+10);
+        for(int j = from; j <= to; j++){
             String word = vocabulary.get(j);
             int total = 0;
-            for(int i = 0; i < fileCount; i++){
+            for(int i = 0; i < fileCount-1; i++){
                 Short count = mapList.get(i).get(word);
                 count = (count==null)?0:count;
                 total += count;
             }
-            if(total > minimumFrequency){
+            if(total > 10){
                 newVocabulary.add(word);
-            }
-            else {
-                for(int i = 0; i < fileCount; i++) {
-                    mapList.get(i).remove(word);
-                }
             }
         }
         newVocabulary.trimToSize();

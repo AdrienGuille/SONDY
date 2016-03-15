@@ -41,7 +41,9 @@ public class AppParameters {
     public static void updateStopwords(ObservableList<String> stopwordSets){
         if(stopwordSets.size() > 0){
             HashSet<String> hashset = new HashSet<>();
-            hashset.addAll(stopwordSets);
+            for(String stopwordSet : stopwordSets){
+                hashset.add(stopwordSet);
+            }
             stopwords.load(hashset);
         }
     }

@@ -18,14 +18,11 @@ package main.java.fr.ericlab.sondy.algo;
 
 import javafx.beans.property.SimpleStringProperty;
 
-import java.io.IOException;
-import java.io.Serializable;
-
 /**
  *
  *   @author Adrien GUILLE, Laboratoire ERIC, Université Lumière Lyon 2
  */
-public class Parameter implements Serializable {
+public class Parameter {
     SimpleStringProperty name = new SimpleStringProperty();
     SimpleStringProperty value = new SimpleStringProperty();
     SimpleStringProperty defaultValue = new SimpleStringProperty();
@@ -54,21 +51,5 @@ public class Parameter implements Serializable {
     
     public String getValue(){
         return value.get();
-    }
-
-    private void writeObject(java.io.ObjectOutputStream out) throws IOException {
-        out.writeObject(name.get());
-        out.writeObject(value.get());
-        out.writeObject(defaultValue.get());
-    }
-
-    private void readObject(java.io.ObjectInputStream in) throws IOException {
-        try {
-            name = new SimpleStringProperty((String)in.readObject());
-            value = new SimpleStringProperty((String)in.readObject());
-            defaultValue = new SimpleStringProperty((String)in.readObject());
-        } catch (ClassNotFoundException ignored) {
-            throw new IOException(ignored);
-        }
     }
 }

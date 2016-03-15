@@ -17,7 +17,6 @@
 package main.java.fr.ericlab.sondy.algo.eventdetection.mabed;
 
 import main.java.fr.ericlab.sondy.core.app.AppParameters;
-import main.java.fr.ericlab.sondy.core.text.index.CalculationType;
 import main.java.fr.ericlab.sondy.core.utils.ArrayUtils;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -44,7 +43,7 @@ public class MABEDComponent1 extends Thread {
     }
     
     float expectation(int timeSlice, float tmf){
-        return AppParameters.dataset.corpus.termFrequencies.get(CalculationType.Mention).getNumberOfDocuments()[timeSlice]*(tmf/AppParameters.dataset.corpus.messageCount);
+        return AppParameters.dataset.corpus.messageDistribution[timeSlice]*(tmf/AppParameters.dataset.corpus.messageCount);
     }
     
     float anomaly(float expectation, float real){
@@ -55,11 +54,13 @@ public class MABEDComponent1 extends Thread {
     public void run() {
         int m = AppParameters.timeSliceB;
         for(int t = from; t <= to; t++){
-            String term = AppParameters.dataset.corpus.termFrequencies.get(CalculationType.Mention).getTerms().get(t);
+            String term = AppParameters.dataset.corpus.vocabulary.get(t);
             if(term.length() > 2 && !AppParameters.stopwords.contains(term)){
-                Short[] mf = AppParameters.dataset.corpus.getTermFrequency(CalculationType.Mention, term);
-                int tmf = AppParameters.dataset.corpus.termFrequencies.get(CalculationType.Mention).getTotalTermFrequency(t);
-                int tgf = tmf;
+                float[] gf, mf;
+                gf = ArrayUtils.toFloatArray(AppParameters.dataset.corpus.getTermFrequency(term));
+                mf = ArrayUtils.toFloatArray(AppParameters.dataset.corpus.getTermFrequency(term));
+                int tmf = (int)ArrayUtils.sum(mf,0,m-1);
+                int tgf = (int)ArrayUtils.sum(gf,0,m-1);
                 if(tgf>minTermOccur && tgf<maxTermOccur){
                     float expectation;
                     float scoreSequence[] = new float[m];

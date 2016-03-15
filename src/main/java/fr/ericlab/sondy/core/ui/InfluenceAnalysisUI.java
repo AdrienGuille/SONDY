@@ -25,6 +25,8 @@ import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.beans.value.ObservableValue;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.concurrent.WorkerStateEvent;
 import main.java.fr.ericlab.sondy.core.app.Main;
@@ -39,15 +41,18 @@ import javafx.scene.chart.CategoryAxis;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.Button;
+import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.Separator;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -63,8 +68,10 @@ import main.java.fr.ericlab.sondy.algo.Parameter;
 import main.java.fr.ericlab.sondy.algo.influenceanalysis.InfluenceAnalysisMethod;
 import main.java.fr.ericlab.sondy.core.app.AppParameters;
 import main.java.fr.ericlab.sondy.core.structures.Message;
+import main.java.fr.ericlab.sondy.core.utils.ArrayUtils;
 import main.java.fr.ericlab.sondy.core.utils.CustomSwingNode;
 import main.java.fr.ericlab.sondy.core.utils.UIUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.graphstream.graph.Node;
 import org.graphstream.ui.geom.Point3;
 import org.graphstream.ui.swingViewer.View;
@@ -92,6 +99,8 @@ public class InfluenceAnalysisUI {
     // - network visualization
     CustomSwingNode swingNode;
     View view;
+    Button zoomInButton;
+    Button zoomOutButton;
     // - rank distribution chart
     CategoryAxis xAxis;
     NumberAxis yAxis;
@@ -251,7 +260,18 @@ public class InfluenceAnalysisUI {
                 }
             }
         };   
+        EventHandler<ScrollEvent> mouseHandlerGraphScroll = new EventHandler<ScrollEvent>() { 
+            @Override
+            public void handle(ScrollEvent event) {
+                if(event.getDeltaY() < 0){
+                    view.getCamera().setViewPercent(view.getCamera().getViewPercent()*2);
+                }else{
+                    view.getCamera().setViewPercent(view.getCamera().getViewPercent()/2);
+                }
+            }
+        };   
         swingNode.setOnMousePressed(mouseHandlerGraphClick);
+        swingNode.setOnScroll(mouseHandlerGraphScroll);
         VBox graphBox = new VBox();
         graphBox.getChildren().addAll(new Rectangle(Main.columnWidthLEFT,0),swingNode);
         initializeNetworkVisualizationStyle();
@@ -312,7 +332,7 @@ public class InfluenceAnalysisUI {
     public final void userMessages(String user){
         final Stage stage = new Stage();
         stage.initModality(Modality.APPLICATION_MODAL);
-        stage.initStyle(StageStyle.UNDECORATED);
+        stage.initStyle(StageStyle.UTILITY);
         stage.setTitle("Messages");
         
         TableView<Message> messageTable = new TableView<>();
@@ -327,6 +347,7 @@ public class InfluenceAnalysisUI {
         messageTable.getColumns().addAll(authorColumn,timeColumn,textColumn);
         messageTable.setItems(AppParameters.dataset.corpus.getMessages(user));
         
+        Text tableText = new Text("User messages ("+messageTable.getItems().size()+")");
         Label topicLabel = new Label();
         topicLabel.setText(AppParameters.event.getTextualDescription());
         Date date = AppParameters.dataset.corpus.start;
@@ -338,15 +359,51 @@ public class InfluenceAnalysisUI {
         topicLabel.setText(AppParameters.event.getTextualDescription());
         Label intervalLabel = new Label();
         intervalLabel.setText("From "+fromInstant+" to "+toInstant);
-       
-        Button closeButton = new Button("Close");
-        UIUtils.setSize(closeButton, Main.columnWidthLEFT, 24);
-        closeButton.setOnAction((ActionEvent ae) -> {
-            stage.close();
+        
+        TextField filterMessagesField1 = new TextField("");
+        filterMessagesField1.setPromptText("Type a list of words (separated by a space)");
+        UIUtils.setSize(filterMessagesField1, 2*(Main.columnWidthLEFT-5)/3, 24);
+        ChoiceBox operatorChoiceBox = new ChoiceBox();
+        ObservableList<String> operatorList = FXCollections.observableArrayList();
+        operatorList.add("and");
+        operatorList.add("or");
+        operatorChoiceBox.setItems(operatorList);
+        operatorChoiceBox.getSelectionModel().select(0);
+        UIUtils.setSize(operatorChoiceBox, (Main.columnWidthLEFT-5)/3, 24);
+        HBox filterMessagesHBox = new HBox(5);
+        filterMessagesHBox.getChildren().add(filterMessagesField1);
+        filterMessagesHBox.getChildren().add(operatorChoiceBox);
+        
+        Button filterMessagesButton = new Button("Filter messages");
+        UIUtils.setSize(filterMessagesButton, Main.columnWidthLEFT, 24);
+        filterMessagesButton.setOnAction((ActionEvent ae) -> {
+            String[] words = filterMessagesField1.getText().split(" ");
+            ObservableList<Message> messages = FXCollections.observableArrayList();
+            int operator = operatorChoiceBox.getSelectionModel().getSelectedIndex();
+            for(Message message : messageTable.getItems()){
+                String text = message.getText();
+                short[] test = new short[words.length];
+                for(int j = 0; j < words.length; j++){
+                    if(StringUtils.containsIgnoreCase(text,words[j])){
+                        test[j] = 1;
+                    }else{
+                        test[j] = 0;
+                    }
+                }
+                int testSum = ArrayUtils.sum(test, 0, test.length-1);
+                if(operator==0 && testSum == test.length){
+                    messages.add(message);
+                }
+                if(operator==1 && testSum > 0){
+                    messages.add(message);
+                }
+            }
             messageTable.getItems().clear();
+            messageTable.setItems(messages);
+            tableText.setText("User messages ("+messageTable.getItems().size()+")");
         });
         
-        Scene scene = new Scene(VBoxBuilder.create().children(new Text("User"),new Separator(),new Label(user),new Text("Messages"),new Separator(),messageTable,closeButton).alignment(Pos.CENTER).padding(new Insets(10)).spacing(3).build());
+        Scene scene = new Scene(VBoxBuilder.create().children(new Text("User"),new Separator(),new Label(user),tableText,new Separator(),messageTable,filterMessagesHBox,filterMessagesButton).alignment(Pos.CENTER).padding(new Insets(10)).spacing(3).build());
         scene.getStylesheets().add("resources/fr/ericlab/sondy/css/GlobalStyle.css");
         stage.setScene(scene);
         stage.show();

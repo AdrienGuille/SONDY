@@ -26,7 +26,7 @@ import org.graphstream.graph.Node;
  *   @email adrien.guille@univ-lyon2.fr
  */
 public class PageRank extends InfluenceAnalysisMethod {
-    double dampingFactor = 0.85;
+    double dampingFactor = 0.15;
     double rankCoefficient = 3;
 
     public PageRank(){

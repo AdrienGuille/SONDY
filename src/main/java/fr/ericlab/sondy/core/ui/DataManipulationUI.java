@@ -18,12 +18,10 @@ package main.java.fr.ericlab.sondy.core.ui;
 
 import com.sun.javafx.css.StyleManager;
 import impl.org.controlsfx.skin.CheckComboBoxSkin;
-import javafx.scene.control.*;
 import main.java.fr.ericlab.sondy.core.app.Main;
 import main.java.fr.ericlab.sondy.core.app.AppParameters;
 import main.java.fr.ericlab.sondy.core.structures.Dataset;
 import main.java.fr.ericlab.sondy.core.structures.Datasets;
-import main.java.fr.ericlab.sondy.core.text.index.CalculationType;
 import main.java.fr.ericlab.sondy.core.text.stopwords.StopwordSets;
 import main.java.fr.ericlab.sondy.core.utils.UIUtils;
 import java.io.File;
@@ -39,6 +37,14 @@ import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
+import javafx.scene.control.Button;
+import javafx.scene.control.ChoiceBox;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.ListView;
+import javafx.scene.control.Separator;
+import javafx.scene.control.Skin;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -84,7 +90,6 @@ public class DataManipulationUI {
     ChoiceBox lemmatizationChoiceBox;
     ChoiceBox tokenizationChoiceBox;
     TextField timeSliceLengthField;
-    CheckBox chkSpamRemover;
     
     // - Filter
     CheckComboBox<String> stopwordListsCheckComboBox;
@@ -193,14 +198,11 @@ public class DataManipulationUI {
         Label stemmingLabel = new Label("Stemming");
         UIUtils.setSize(stemmingLabel, Main.columnWidthLEFT/2, 24);
         Label LemmatizationLabel = new Label("Lemmatization");
-        UIUtils.setSize(LemmatizationLabel, Main.columnWidthLEFT / 2, 24);
+        UIUtils.setSize(LemmatizationLabel, Main.columnWidthLEFT/2, 24);
         Label TokenizationLabel = new Label("Tokenization");
-        UIUtils.setSize(TokenizationLabel, Main.columnWidthLEFT / 2, 24);
+        UIUtils.setSize(TokenizationLabel, Main.columnWidthLEFT/2, 24);
         Label partitionLabel = new Label("Partition and index messages");
-        UIUtils.setSize(partitionLabel, Main.columnWidthLEFT / 2, 24);
-        Label spamRemoveLabel = new Label("Remove Spam Tweets of Same User");
-        UIUtils.setSize(spamRemoveLabel , Main.columnWidthLEFT / 2, 24);
-
+        UIUtils.setSize(partitionLabel, Main.columnWidthLEFT/2, 24);
         gridLEFT.add(stemmingLabel,0,0);
         gridLEFT.add(new Rectangle(0,3),0,1);
         gridLEFT.add(LemmatizationLabel,0,2);
@@ -208,29 +210,24 @@ public class DataManipulationUI {
         gridLEFT.add(TokenizationLabel,0,4);
         gridLEFT.add(new Rectangle(0,3),0,5);
         gridLEFT.add(partitionLabel,0,6);
-//        gridLEFT.add(spamRemoveLabel,0,7);
         
         // Values
         stemmingChoiceBox = new ChoiceBox();
         stemmingChoiceBox.getItems().addAll("disabled","French","English","Arabic","Persian");
-        UIUtils.setSize(stemmingChoiceBox, Main.columnWidthLEFT / 2, 24);
+        UIUtils.setSize(stemmingChoiceBox,Main.columnWidthLEFT/2, 24);
         lemmatizationChoiceBox = new ChoiceBox();
         lemmatizationChoiceBox.getItems().addAll("disabled","French","English");
-        UIUtils.setSize(lemmatizationChoiceBox, Main.columnWidthLEFT / 2, 24);
+        UIUtils.setSize(lemmatizationChoiceBox,Main.columnWidthLEFT/2, 24);
         tokenizationChoiceBox = new ChoiceBox();
         tokenizationChoiceBox.getItems().addAll("1-gram","2-gram","3-gram");
-        UIUtils.setSize(tokenizationChoiceBox, Main.columnWidthLEFT / 2, 24);
+        UIUtils.setSize(tokenizationChoiceBox,Main.columnWidthLEFT/2, 24);
         timeSliceLengthField = new TextField();
         timeSliceLengthField.setPromptText("time-slice length in minutes (e.g. 30)");
-        UIUtils.setSize(timeSliceLengthField, Main.columnWidthLEFT / 2, 24);
-        chkSpamRemover = new CheckBox();
-//        chkSpamRemover.setText("Remove Spam Tweets");
-//        UIUtils.setSize(chkSpamRemover, Main.columnWidthLEFT / 2, 24);
+        UIUtils.setSize(timeSliceLengthField,Main.columnWidthLEFT/2, 24);
         gridLEFT.add(stemmingChoiceBox,1,0);
         gridLEFT.add(lemmatizationChoiceBox,1,2);
         gridLEFT.add(tokenizationChoiceBox,1,4);
         gridLEFT.add(timeSliceLengthField,1,6);
-//        gridLEFT.add(chkSpamRemover,1,7);
         
         HBox preprocessDatasetBOTH = new HBox(5);
         preprocessDatasetBOTH.getChildren().addAll(gridLEFT,createPreprocessButton());
@@ -310,28 +307,15 @@ public class DataManipulationUI {
             @Override public void changed(ObservableValue ov, String t, String t1) {
                 clearFilterUI();
                 if(t1 != null){
-                    AppParameters.disableUI(true);
-                    LogUI.addLogEntry("Loading '" + AppParameters.dataset.id + "' (" + t1 + ")... ");
-                    final Task<String> waitingTask = new Task<String>() {
-                        @Override
-                        public String call() throws Exception {
-                            AppParameters.dataset.corpus.loadFrequencies(t1);
-                            AppParameters.timeSliceA = 0;
-                            AppParameters.timeSliceB = AppParameters.dataset.corpus.getMessageDistribution(CalculationType.Frequency).length;
-                            return "Done.";
-                        }
-                    };
-                    waitingTask.setOnSucceeded((WorkerStateEvent event1) -> {
-                        LogUI.addLogEntry(waitingTask.getValue());
-                        AppParameters.disableUI(false);
-
-                        resizeSlider.setMin(0);
-                        resizeSlider.setLowValue(0);
-                        resizeSlider.setMax(AppParameters.dataset.corpus.getLength());
-                        resizeSlider.setHighValue(AppParameters.dataset.corpus.getLength());
-                    });
-                    ExecutorService executor = Executors.newSingleThreadExecutor();
-                    executor.submit(waitingTask);
+                    LogUI.addLogEntry("Loading '"+AppParameters.dataset.id+"' ("+t1+")... ");
+                    AppParameters.dataset.corpus.loadFrequencies(t1);
+                    AppParameters.timeSliceA = 0;
+                    AppParameters.timeSliceB = AppParameters.dataset.corpus.messageDistribution.length;
+                    LogUI.addLogEntry("Done.");
+                    resizeSlider.setMin(0);
+                    resizeSlider.setLowValue(0);
+                    resizeSlider.setMax(AppParameters.dataset.corpus.getLength());
+                    resizeSlider.setHighValue(AppParameters.dataset.corpus.getLength());
                 }
             }    
         });
@@ -368,21 +352,22 @@ public class DataManipulationUI {
         importButton.setOnAction((ActionEvent event) -> {
             AppParameters.disableUI(true);
             newDatasetProperties.put("id",newDatasetIdentifierField.getText());
-            newDatasetProperties.put("description", newDatasetDescriptionField.getText());
+            newDatasetProperties.put("description",newDatasetDescriptionField.getText());
             Dataset dataset = new Dataset();
             AppParameters.disableUI(true);
             String messagesFilePath = newDatasetProperties.get("messagesFile");
             String networkFilePath = newDatasetProperties.get("networkFile");
             LogUI.addLogEntry("Importing '"+newDatasetIdentifierField.getText()+"' (messages file: "+messagesFilePath+", network file: "+networkFilePath+")...");
-            final Task<String[]> waitingTask = new Task<String[]>() {
+            final Task<String> waitingTask = new Task<String>() {
                     @Override
-                    public String[] call() throws Exception {
-                        return dataset.create(newDatasetProperties);
+                    public String call() throws Exception {
+                        String[] log = dataset.create(newDatasetProperties);
+                        LogUI.addLogEntry(log[0]);
+                        LogUI.addLogEntry(log[1]);
+                        return "" ;
                     }
                 };
                 waitingTask.setOnSucceeded((WorkerStateEvent event1) -> {
-                    LogUI.addLogEntry(waitingTask.getValue()[0]);
-                    LogUI.addLogEntry(waitingTask.getValue()[1]);
                     newDatasetProperties.clear();
                     availableDatasets.update();
                     messagesFileButton.setText("Choose file...");
@@ -409,24 +394,23 @@ public class DataManipulationUI {
             int timeSliceLength = Integer.parseInt(timeSliceLengthField.getText());
             String stemming = stemmingChoiceBox.getSelectionModel().getSelectedItem().toString();
             String lemmatization = lemmatizationChoiceBox.getSelectionModel().getSelectedItem().toString();
-            LogUI.addLogEntry("Preprocessing '"+AppParameters.dataset.id+"' (stemming: "+stemming+", lemmatization: "+lemmatization+", "+ngram+"-gram, "+
-                timeSliceLength+"-min time-slices, spamremoved: "+chkSpamRemover.isSelected()+")...");
+            LogUI.addLogEntry("Preprocessing '"+AppParameters.dataset.id+"' (stemming: "+stemming+", lemmatization: "+lemmatization+", "+ngram+"-gram, "+timeSliceLength+"-min time-slices)...");
             final Task<String> waitingTask = new Task<String>() {
                     @Override
                     public String call() throws Exception {
-                        return AppParameters.dataset.preprocess(stemming,lemmatization,ngram,timeSliceLength,chkSpamRemover.isSelected());
+                        String log = AppParameters.dataset.preprocess(stemming,lemmatization,ngram,timeSliceLength);
+                        LogUI.addLogEntry(log);
+                        return "";
                     }
                 };
                 waitingTask.setOnSucceeded((WorkerStateEvent event1) -> {
-                    LogUI.addLogEntry(waitingTask.getValue());
-//                    AppParameters.dataset.preprocess(stemmingChoiceBox.getSelectionModel().getSelectedItem().toString(),
-//                        lemmatizationChoiceBox.getSelectionModel().getSelectedItem().toString(),ngram,timeSliceLength,chkSpamRemover.isSelected());
+                    AppParameters.dataset.preprocess(stemmingChoiceBox.getSelectionModel().getSelectedItem().toString(),lemmatizationChoiceBox.getSelectionModel().getSelectedItem().toString(),ngram,timeSliceLength);
                     AppParameters.dataset.updatePreprocessedCorpusList();
                     AppParameters.disableUI(false);
                     clearPreprocessUI();
             }); 
             ExecutorService executor = Executors.newSingleThreadExecutor();
-            executor.submit(waitingTask);
+            executor.submit(waitingTask); 
         });
         buttonBox.getChildren().addAll(preprocessButton);
         return buttonBox;

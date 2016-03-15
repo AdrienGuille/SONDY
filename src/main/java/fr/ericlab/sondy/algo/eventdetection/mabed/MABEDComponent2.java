@@ -17,7 +17,6 @@
 package main.java.fr.ericlab.sondy.algo.eventdetection.mabed;
 
 import main.java.fr.ericlab.sondy.core.app.AppParameters;
-import main.java.fr.ericlab.sondy.core.text.index.CalculationType;
 import main.java.fr.ericlab.sondy.core.text.index.Indexer;
 import java.util.ArrayList;
 
@@ -40,7 +39,7 @@ public class MABEDComponent2 extends Thread {
         threadId = id;
     }
     
-    double getErdemCoefficient(Short[] ref, Short[] comp, int a, int b){
+    double getErdemCoefficient(short[] ref, short[] comp, int a, int b){
         double scores1[] = new double[b-a+1], scores2[] = new double[b-a+1]; 
         for(int i = a; i <= b; i++){
             scores1[i-a] = ref[i];
@@ -64,11 +63,11 @@ public class MABEDComponent2 extends Thread {
         refinedEvent = new MABEDEvent();
         Indexer indexer = new Indexer();
         ArrayList<String> candidateWords = indexer.getMostFrequentWords(AppParameters.dataset.corpus.getMessages(basicEvent.mainTerm,basicEvent.I.timeSliceA,basicEvent.I.timeSliceB),basicEvent.mainTerm,candidateWordSetSize);
-        Short ref[] = AppParameters.dataset.corpus.getTermFrequency(CalculationType.Mention, basicEvent.mainTerm);
-        Short comp[];
+        short ref[] = AppParameters.dataset.corpus.getTermFrequency(basicEvent.mainTerm);
+        short comp[];
         refinedEvent = new MABEDEvent(basicEvent.mainTerm, basicEvent.I, basicEvent.score, basicEvent.anomaly);
         for(String word : candidateWords){
-            comp = AppParameters.dataset.corpus.getTermFrequency(CalculationType.Mention, word);
+            comp = AppParameters.dataset.corpus.getTermFrequency(word);
             double w = getErdemCoefficient(ref, comp, basicEvent.I.timeSliceA, basicEvent.I.timeSliceB);
             if(w >= theta){
                 refinedEvent.relatedTerms.add(new MABEDWeightedTerm(word,w));

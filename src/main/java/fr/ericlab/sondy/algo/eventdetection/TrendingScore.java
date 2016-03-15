@@ -19,7 +19,6 @@ package main.java.fr.ericlab.sondy.algo.eventdetection;
 import main.java.fr.ericlab.sondy.core.app.AppParameters;
 import main.java.fr.ericlab.sondy.core.structures.Event;
 import main.java.fr.ericlab.sondy.algo.Parameter;
-import main.java.fr.ericlab.sondy.core.text.index.CalculationType;
 import main.java.fr.ericlab.sondy.core.utils.HashMapUtils;
 import java.util.HashMap;
 import java.util.Map;
@@ -68,10 +67,10 @@ public class TrendingScore extends EventDetectionMethod {
         for(int i = 0; i < AppParameters.timeSliceB - AppParameters.timeSliceA; i++){
             nbTermsPerTimeSlice[i] = AppParameters.dataset.corpus.getNumberOfTermsInTimeSlice(i);
         }
-        for(int i = 0; i < AppParameters.dataset.corpus.termFrequencies.get(CalculationType.Frequency).getTerms().size(); i++){
-            String term = AppParameters.dataset.corpus.termFrequencies.get(CalculationType.Frequency).getTerms().get(i);
+        for(int i = 0; i < AppParameters.dataset.corpus.vocabulary.size(); i++){
+            String term = AppParameters.dataset.corpus.vocabulary.get(i);
             if(term.length()>1 && !AppParameters.stopwords.contains(term)){
-                Short[] frequency = AppParameters.dataset.corpus.termFrequencies.get(CalculationType.Frequency).getDocumentsTermFrequency(i);
+                short[] frequency = AppParameters.dataset.corpus.termFrequencies[i];
                 int cf = 0;
                 for(int j=AppParameters.timeSliceA; j < AppParameters.timeSliceB; j++) {
                     cf += frequency[j];

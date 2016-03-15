@@ -19,64 +19,43 @@ package main.java.fr.ericlab.sondy.algo;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
-import java.io.IOException;
-import java.io.Serializable;
-
 /**
  *
  *   @author Adrien GUILLE, ERIC Lab, University of Lyon 2
  *   @email adrien.guille@univ-lyon2.fr
  */
-public class Parameters implements Serializable {
+public class Parameters {
     public ObservableList<Parameter> list;
-
-    public Parameters() {
+    
+    public Parameters(){
         list = FXCollections.observableArrayList();
     }
-
+    
     @Override
-    public String toString() {
-        if (list.size() > 0) {
+    public String toString(){
+        if(list.size() > 0){
             String string = "(";
-            for (Parameter p : list) {
-                string += p.getName() + "=" + p.getValue() + ", ";
+            for(Parameter p : list){
+                string += p.getName()+"="+p.getValue()+", ";
             }
-            string = string.substring(0, string.length() - 2);
-            return string + ")";
-        } else {
+            string = string.substring(0, string.length()-2);
+            return string+")";
+        }else{
             return "";
         }
     }
-
-    public void add(Parameter p) {
+    
+    public void add(Parameter p){
         list.add(p);
     }
-
-    public double getParameterValue(String name) {
-        for (Parameter p : list) {
-            if (p.getName().equals(name)) {
+    
+    public double getParameterValue(String name){
+        for(Parameter p : list){
+            if(p.getName().equals(name)){
                 return Double.parseDouble(p.getValue());
             }
         }
         return 0;
     }
-
-    private void writeObject(java.io.ObjectOutputStream out) throws IOException {
-        out.writeInt(list.size());
-        for (Parameter parameter : list) {
-            out.writeObject(parameter);
-        }
-    }
-
-    private void readObject(java.io.ObjectInputStream in) throws IOException {
-        int count = in.readInt();
-        list = FXCollections.observableArrayList();
-        for (int iCounter = 0; iCounter < count; iCounter++) {
-            try {
-                list.add((Parameter) in.readObject());
-            } catch (ClassNotFoundException ignored) {
-                throw new IOException(ignored);
-            }
-        }
-    }
+    
 }

@@ -165,7 +165,7 @@ public class GlobalUI {
         webView.setMinWidth(Main.columnWidthLEFT);
         webView.setMaxHeight(Main.columnWidthLEFT);
         webView.setMinHeight(Main.columnWidthLEFT);
-        Scene scene = new Scene(VBoxBuilder.create().children(new Label("SONDY "+Main.version),new Label("Main developper: Adrien Guille <adrien.guille@univ-lyon2.fr>"),new Label("Additional developper: Farrokh Ghamsary"),webView).alignment(Pos.CENTER).padding(new Insets(10)).spacing(3).build());
+        Scene scene = new Scene(VBoxBuilder.create().children(new Label("SONDY "+Main.version),new Label("Main developper: Adrien Guille <adrien.guille@univ-lyon2.fr>"),webView).alignment(Pos.CENTER).padding(new Insets(10)).spacing(3).build());
         scene.getStylesheets().add("resources/fr/ericlab/sondy/css/GlobalStyle.css");
         stage.setScene(scene);
         stage.show();

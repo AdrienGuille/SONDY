@@ -71,16 +71,16 @@ public class Dataset {
         String networkFilePath = datasetProperties.get("networkFile");
         String[] log = {"Messages: error.","Network: error."};
         if(!dir.exists() && messagesFilePath!=null){
-            log[0] = corpus.create(datasetId, messagesFilePath);
-            log[1] = network.create(datasetId, networkFilePath);
+            log[0] = corpus.create(datasetId, datasetProperties.get("messagesFile"));
+            log[1] = network.create(datasetId, datasetProperties.get("networkFile"));
             PropertiesFileUtils.writeProperty(Paths.get(Configuration.datasets+File.separator+datasetId+File.separator+"dataset.properties").toString(),"description",datasetProperties.get("description"));
             return log;
         }
         return log;
     }
 
-    public String preprocess(String stemming, String lemmatization, int ngram, int timeSliceLength, boolean removeSpan){
-        return corpus.preprocess(path,stemming,lemmatization,ngram,timeSliceLength,removeSpan);
+    public String preprocess(String stemming, String lemmatization, int ngram, int timeSliceLength){
+        return corpus.preprocess(path,stemming,lemmatization,ngram,timeSliceLength);
     }
 
 }
